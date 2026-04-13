@@ -1,0 +1,184 @@
+name: Create Project From Template
+run-name: "Create ${{ inputs.new_repo }} ${{ inputs.request_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Optional request id from external system"
+        required: false
+        default: ""
+        type: string
+      template_repo:
+        description: "Template repo, format owner/name"
+        required: true
+        type: string
+      template_ref:
+        description: "Template branch or tag"
+        required: false
+        default: "main"
+        type: string
+      new_repo:
+        description: "New repo name"
+        required: true
+        type: string
+      project_name:
+        description: "Project display name"
+        required: true
+        type: string
+      visibility:
+        description: "public or private"
+        required: true
+        default: "private"
+        type: choice
+        options:
+          - private
+          - public
+      default_branch:
+        description: "Branch after initialization"
+        required: true
+        default: "main"
+        type: string
+      custom_replacements:
+        description: "JSON array: [{\"key\":\"__A__\",\"value\":\"B\"}]"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  create-project:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.FACTORY_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      TEMPLATE_REPO: ${{ inputs.template_repo }}
+      TEMPLATE_REF: ${{ inputs.template_ref }}
+      NEW_REPO: ${{ inputs.new_repo }}
+      PROJECT_NAME: ${{ inputs.project_name }}
+      DEFAULT_BRANCH: ${{ inputs.default_branch }}
+      VISIBILITY: ${{ inputs.visibility }}
+      CUSTOM_REPLACEMENTS: ${{ inputs.custom_replacements }}
+    steps:
+      - name: Checkout factory repository
+        uses: actions/checkout@v4
+
+      - name: Check token
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN}" || {
+            echo "Missing secret FACTORY_TOKEN"
+            exit 1
+          }
+          gh auth status
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          [[ "${NEW_REPO}" =~ ^[a-zA-Z0-9._-]+$ ]] || {
+            echo "Invalid new_repo: ${NEW_REPO}"
+            exit 1
+          }
+          [[ "${TEMPLATE_REF}" =~ ^[a-zA-Z0-9._/-]+$ ]] || {
+            echo "Invalid template_ref: ${TEMPLATE_REF}"
+            exit 1
+          }
+          [[ "${DEFAULT_BRANCH}" =~ ^[a-zA-Z0-9._/-]+$ ]] || {
+            echo "Invalid default_branch: ${DEFAULT_BRANCH}"
+            exit 1
+          }
+          if [ -n "${CUSTOM_REPLACEMENTS}" ]; then
+            echo "${CUSTOM_REPLACEMENTS}" >/tmp/custom-replacements.json
+            jq -e '
+              type == "array" and
+              all(.[]; 
+                (.key | type == "string") and
+                (.key | length > 0) and
+                (.key | contains("=") | not) and
+                (.key | test("[\r\n]") | not) and
+                ((.value // "" | tostring | test("[\r\n]") | not))
+              )
+            ' /tmp/custom-replacements.json >/dev/null || {
+              echo "Invalid custom_replacements JSON"
+              exit 1
+            }
+          fi
+
+      - name: Ensure target repository does not exist
+        run: |
+          set -euo pipefail
+          if gh repo view "${OWNER}/${NEW_REPO}" >/dev/null 2>&1; then
+            echo "Target repository already exists: ${OWNER}/${NEW_REPO}"
+            exit 1
+          fi
+
+      - name: Create target repository
+        run: |
+          set -euo pipefail
+          if [ "${VISIBILITY}" = "public" ]; then
+            gh repo create "${OWNER}/${NEW_REPO}" --public --confirm
+          else
+            gh repo create "${OWNER}/${NEW_REPO}" --private --confirm
+          fi
+
+      - name: Clone template repository
+        run: |
+          set -euo pipefail
+          git clone \
+            --branch "${TEMPLATE_REF}" \
+            --single-branch \
+            "https://x-access-token:${GH_TOKEN}@github.com/${TEMPLATE_REPO}.git" \
+            project
+
+      - name: Customize project files
+        working-directory: project
+        run: |
+          set -euo pipefail
+          NPM_PACKAGE_NAME="$(echo "${NEW_REPO}" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9._-]+/-/g; s/^[._-]+//; s/[._-]+$//')"
+          if [ -z "${NPM_PACKAGE_NAME}" ]; then
+            NPM_PACKAGE_NAME="app"
+          fi
+          ARGS=(
+            "__PROJECT_NAME__=${PROJECT_NAME}"
+            "__REPO_NAME__=${NEW_REPO}"
+            "__OWNER__=${OWNER}"
+            "__NPM_PACKAGE_NAME__=${NPM_PACKAGE_NAME}"
+          )
+
+          if [ -n "${CUSTOM_REPLACEMENTS}" ]; then
+            echo "${CUSTOM_REPLACEMENTS}" >/tmp/custom-replacements.json
+            while IFS= read -r item_b64; do
+              item_json="$(printf '%s' "${item_b64}" | base64 --decode)"
+              key="$(printf '%s' "${item_json}" | jq -r '.key')"
+              value="$(printf '%s' "${item_json}" | jq -r '(.value // "" | tostring)')"
+              ARGS+=("${key}=${value}")
+            done < <(jq -r '.[] | @base64' /tmp/custom-replacements.json)
+          fi
+
+          bash ../scripts/customize.sh "${ARGS[@]}"
+
+      - name: Push initial code
+        working-directory: project
+        run: |
+          set -euo pipefail
+          git config user.name "factory-bot"
+          git config user.email "factory-bot@users.noreply.github.com"
+          git remote remove origin
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${OWNER}/${NEW_REPO}.git"
+          git checkout -B "${DEFAULT_BRANCH}"
+          git add -A
+          git commit -m "chore: initialize ${PROJECT_NAME}" || true
+          git push -u origin "${DEFAULT_BRANCH}"
+
+      - name: Set default branch
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${OWNER}/${NEW_REPO}" \
+            -f default_branch="${DEFAULT_BRANCH}"
+
+      - name: Summary
+        run: |
+          echo "Created: https://github.com/${OWNER}/${NEW_REPO}"

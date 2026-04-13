@@ -1,0 +1,1323 @@
+name: Create RustDesk Project
+run-name: "RustDesk ${{ inputs.new_repo }} ${{ inputs.request_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Optional request id from external system"
+        required: false
+        default: ""
+        type: string
+      version:
+        description: "RustDesk version tag, e.g. 1.4.6 or master"
+        required: true
+        default: "1.4.6"
+        type: string
+      source_repo:
+        description: "RustDesk source repository owner/name"
+        required: true
+        default: "rustdesk/rustdesk"
+        type: string
+      source_ref:
+        description: "Optional source branch/tag override; if empty uses version"
+        required: false
+        default: ""
+        type: string
+      new_repo:
+        description: "New repository name"
+        required: true
+        type: string
+      visibility:
+        description: "public or private"
+        required: true
+        default: "private"
+        type: choice
+        options:
+          - private
+          - public
+      default_branch:
+        description: "Branch after initialization"
+        required: true
+        default: "master"
+        type: string
+      app_name:
+        description: "App display name"
+        required: true
+        default: "RustDesk"
+        type: string
+      exe_name:
+        description: "Windows executable name (without .exe is also supported)"
+        required: true
+        default: "rustdesk"
+        type: string
+      company_name:
+        description: "Company name shown in metadata"
+        required: true
+        default: "Purslane Ltd"
+        type: string
+      rendezvous_server:
+        description: "Rendezvous server host"
+        required: true
+        default: "rs-ny.rustdesk.com"
+        type: string
+      pub_key:
+        description: "Rendezvous server public key"
+        required: true
+        default: "OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw="
+        type: string
+      api_server:
+        description: "API server URL"
+        required: true
+        default: "https://admin.rustdesk.com"
+        type: string
+      website_url:
+        description: "Website URL"
+        required: true
+        default: "https://rustdesk.com"
+        type: string
+      download_url:
+        description: "Download URL"
+        required: true
+        default: "https://rustdesk.com/download"
+        type: string
+      privacy_url:
+        description: "Privacy policy URL"
+        required: true
+        default: "https://rustdesk.com/privacy.html"
+        type: string
+      pricing_url:
+        description: "Pricing URL"
+        required: true
+        default: "https://rustdesk.com/pricing"
+        type: string
+      docs_home_url:
+        description: "Docs homepage URL"
+        required: true
+        default: "https://rustdesk.com/docs/en/"
+        type: string
+      docs_x11_url:
+        description: "Linux X11 docs URL"
+        required: true
+        default: "https://rustdesk.com/docs/en/manual/linux/#x11-required"
+        type: string
+      docs_permissions_url:
+        description: "Linux permissions docs URL"
+        required: true
+        default: "https://rustdesk.com/docs/en/client/linux/#permissions-issue"
+        type: string
+      docs_login_screen_url:
+        description: "Linux login screen docs URL"
+        required: true
+        default: "https://rustdesk.com/docs/en/manual/linux/#login-screen"
+        type: string
+      docs_mac_permission_url:
+        description: "Mac permissions docs URL"
+        required: true
+        default: "https://rustdesk.com/docs/en/client/mac/#enable-permissions"
+        type: string
+      relay_setup_tutorial_url:
+        description: "Relay setup tutorial URL"
+        required: true
+        default: "https://rustdesk.com/blog/id-relay-set/"
+        type: string
+      bundle_id:
+        description: "Bundle identifier (macOS/iOS metadata)"
+        required: true
+        default: "com.carriez.rustdesk"
+        type: string
+      support_email:
+        description: "Support email metadata"
+        required: true
+        default: "info@rustdesk.com"
+        type: string
+      slogan_en:
+        description: "English slogan text"
+        required: true
+        default: "Made with heart in this chaotic world!"
+        type: string
+      slogan_cn:
+        description: "Chinese slogan text"
+        required: true
+        default: "在这个混乱的世界中，用心制作！"
+        type: string
+      update_check_api_url:
+        description: "Update check API URL (returns latest release tag URL JSON)"
+        required: true
+        default: "https://api.rustdesk.com/version/latest"
+        type: string
+      auto_update_enabled:
+        description: "Enable background auto-update by default"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      settings_scope:
+        description: "Write settings into default or overwrite map"
+        required: true
+        default: "default"
+        type: choice
+        options:
+          - default
+          - override
+      connection_direction:
+        description: "Hard rule: both/incoming/outgoing"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - incoming
+          - outgoing
+      disable_installation:
+        description: "Hard rule: disable installation entry"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      disable_settings:
+        description: "Hard rule: disable settings page"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      permanent_password:
+        description: "Hard rule: permanent password (optional)"
+        required: false
+        default: ""
+        type: string
+      access_mode:
+        description: "Security access mode"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - custom
+          - full
+          - view
+      approve_mode:
+        description: "Security approval mode"
+        required: true
+        default: "password"
+        type: choice
+        options:
+          - password
+          - click
+          - password-click
+      verification_method:
+        description: "Security verification method"
+        required: true
+        default: "use-temporary-password"
+        type: choice
+        options:
+          - use-temporary-password
+          - use-permanent-password
+          - use-both-passwords
+      allow_numeric_one_time_password:
+        description: "Security: allow numeric one-time password"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      temporary_password_length:
+        description: "Security: one-time password length"
+        required: true
+        default: "6"
+        type: choice
+        options:
+          - "6"
+          - "8"
+          - "10"
+      enable_keyboard:
+        description: "Permission: keyboard/mouse control"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_clipboard:
+        description: "Permission: clipboard sync"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_file_transfer:
+        description: "Permission: file transfer"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_audio:
+        description: "Permission: audio"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_tunnel:
+        description: "Permission: TCP tunneling"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_remote_restart:
+        description: "Permission: remote restart"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_record_session:
+        description: "Permission: session recording"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_block_input:
+        description: "Permission: block remote input"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_remote_config_modification:
+        description: "Permission: allow modifying local config"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_remote_printer:
+        description: "Permission: remote printer"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_camera:
+        description: "Permission: camera redirection"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_terminal:
+        description: "Permission: terminal"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_lan_discovery:
+        description: "Other: LAN discovery"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      direct_server:
+        description: "Other: direct server mode"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      direct_access_port:
+        description: "Other: direct access port (optional)"
+        required: false
+        default: ""
+        type: string
+      whitelist:
+        description: "Other: whitelist value (optional)"
+        required: false
+        default: ""
+        type: string
+      allow_auto_disconnect:
+        description: "Other: allow auto disconnect"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      auto_disconnect_timeout:
+        description: "Other: auto disconnect timeout minutes (optional)"
+        required: false
+        default: ""
+        type: string
+      allow_only_conn_window_open:
+        description: "Other: allow only connection window open"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_hide_cm:
+        description: "Other: hide connection management window (silent connect)"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_auto_record_incoming:
+        description: "Other: auto record incoming sessions"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_auto_record_outgoing:
+        description: "Other: auto record outgoing sessions"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_abr:
+        description: "Other: adaptive bitrate"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_hwcodec:
+        description: "Other: hardware codec"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_always_software_render:
+        description: "Other: always software render"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_linux_headless:
+        description: "Other: allow linux headless"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_udp_punch:
+        description: "Other: enable UDP hole punching"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_ipv6_punch:
+        description: "Other: enable IPv6 P2P"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_directx_capture:
+        description: "Other: DirectX capture"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      enable_trusted_devices:
+        description: "Other: trusted devices"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      keep_awake_during_incoming_sessions:
+        description: "Other: keep awake during incoming sessions"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      keep_awake_during_outgoing_sessions:
+        description: "Other: keep awake during outgoing sessions"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_ask_for_note:
+        description: "Other: ask for note at end of connection"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_websocket:
+        description: "Network: allow websocket"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      disable_udp:
+        description: "Network: disable UDP"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_insecure_tls_fallback:
+        description: "Network: allow insecure TLS fallback"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      fix_third_party_api_latency:
+        description: "Network/API: patch third-party API timeout strategy to reduce delay"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      third_party_api_timeout_secs:
+        description: "Network/API: API timeout seconds when fix is enabled (2-60)"
+        required: false
+        default: "6"
+        type: string
+      allow_remove_wallpaper:
+        description: "Other: allow remove wallpaper"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      disable_change_permanent_password:
+        description: "Other: lock changing permanent password"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      disable_change_id:
+        description: "Other: lock changing ID"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      disable_unlock_pin:
+        description: "Other: disable unlock pin"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      custom_rendezvous_server:
+        description: "Advanced: custom rendezvous server option"
+        required: false
+        default: ""
+        type: string
+      custom_server_key:
+        description: "Advanced: custom key option"
+        required: false
+        default: ""
+        type: string
+      relay_server:
+        description: "Advanced: relay server option"
+        required: false
+        default: ""
+        type: string
+      ice_servers:
+        description: "Advanced: ICE servers option"
+        required: false
+        default: ""
+        type: string
+      proxy_url:
+        description: "Advanced: proxy url option"
+        required: false
+        default: ""
+        type: string
+      proxy_username:
+        description: "Advanced: proxy username option"
+        required: false
+        default: ""
+        type: string
+      proxy_password:
+        description: "Advanced: proxy password option"
+        required: false
+        default: ""
+        type: string
+      preset_address_book_name:
+        description: "Advanced: preset address book name"
+        required: false
+        default: ""
+        type: string
+      preset_address_book_tag:
+        description: "Advanced: preset address book tag"
+        required: false
+        default: ""
+        type: string
+      preset_address_book_alias:
+        description: "Advanced: preset address book alias"
+        required: false
+        default: ""
+        type: string
+      preset_address_book_password:
+        description: "Advanced: preset address book password"
+        required: false
+        default: ""
+        type: string
+      preset_address_book_note:
+        description: "Advanced: preset address book note"
+        required: false
+        default: ""
+        type: string
+      preset_device_username:
+        description: "Advanced: preset device username"
+        required: false
+        default: ""
+        type: string
+      preset_device_name:
+        description: "Advanced: preset device name"
+        required: false
+        default: ""
+        type: string
+      preset_note:
+        description: "Advanced: preset note"
+        required: false
+        default: ""
+        type: string
+      enable_android_software_encoding_half_scale:
+        description: "Advanced: android software encoding half scale"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_security_settings:
+        description: "Advanced builtin: hide security settings"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_network_settings:
+        description: "Advanced builtin: hide network settings"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_server_settings:
+        description: "Advanced builtin: hide server settings"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_proxy_settings:
+        description: "Advanced builtin: hide proxy settings"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_remote_printer_settings:
+        description: "Advanced builtin: hide remote printer settings"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_websocket_settings:
+        description: "Advanced builtin: hide websocket settings"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_username_on_card:
+        description: "Advanced builtin: hide username on card"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_help_cards:
+        description: "Advanced builtin: hide help cards"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      hide_tray:
+        description: "Advanced builtin: hide tray"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      remove_preset_password_warning:
+        description: "Advanced builtin: remove preset password warning"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      default_connect_password:
+        description: "Advanced builtin: default connect password"
+        required: false
+        default: ""
+        type: string
+      one_way_clipboard_redirection:
+        description: "Advanced builtin: one-way clipboard redirection"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      one_way_file_transfer:
+        description: "Advanced builtin: one-way file transfer"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_logon_screen_password:
+        description: "Advanced builtin: allow logon screen password"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_https_21114:
+        description: "Advanced builtin: allow https 21114"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      allow_hostname_as_id:
+        description: "Advanced builtin: allow hostname as id"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      register_device:
+        description: "Advanced builtin: register device"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      main_window_always_on_top:
+        description: "Advanced builtin: main window always on top"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      file_transfer_max_files:
+        description: "Advanced builtin: file transfer max files"
+        required: false
+        default: ""
+        type: string
+      display_name:
+        description: "Advanced builtin: display name"
+        required: false
+        default: ""
+        type: string
+      preset_device_group_name:
+        description: "Advanced builtin: preset device group name"
+        required: false
+        default: ""
+        type: string
+      preset_username:
+        description: "Advanced builtin: preset username"
+        required: false
+        default: ""
+        type: string
+      preset_strategy_name:
+        description: "Advanced builtin: preset strategy name"
+        required: false
+        default: ""
+        type: string
+      avatar:
+        description: "Advanced builtin: avatar"
+        required: false
+        default: ""
+        type: string
+      hide_powered_by:
+        description: "Hide Powered By area in desktop UI"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      ui_preset:
+        description: "Desktop UI preset: standard / mini-host / controller-only"
+        required: true
+        default: "standard"
+        type: choice
+        options:
+          - standard
+          - mini-host-id-password
+          - controller-desktop-only
+
+jobs:
+  create-rustdesk-project:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.FACTORY_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      VERSION: ${{ inputs.version }}
+      SOURCE_REPO: ${{ inputs.source_repo }}
+      SOURCE_REF: ${{ inputs.source_ref }}
+      NEW_REPO: ${{ inputs.new_repo }}
+      DEFAULT_BRANCH: ${{ inputs.default_branch }}
+      VISIBILITY: ${{ inputs.visibility }}
+      APP_NAME: ${{ inputs.app_name }}
+      EXE_NAME: ${{ inputs.exe_name }}
+      COMPANY_NAME: ${{ inputs.company_name }}
+      RENDEZVOUS_SERVER: ${{ inputs.rendezvous_server }}
+      PUB_KEY: ${{ inputs.pub_key }}
+      API_SERVER: ${{ inputs.api_server }}
+      WEBSITE_URL: ${{ inputs.website_url }}
+      DOWNLOAD_URL: ${{ inputs.download_url }}
+      PRIVACY_URL: ${{ inputs.privacy_url }}
+      PRICING_URL: ${{ inputs.pricing_url }}
+      DOCS_HOME_URL: ${{ inputs.docs_home_url }}
+      DOCS_X11_URL: ${{ inputs.docs_x11_url }}
+      DOCS_PERMISSIONS_URL: ${{ inputs.docs_permissions_url }}
+      DOCS_LOGIN_SCREEN_URL: ${{ inputs.docs_login_screen_url }}
+      DOCS_MAC_PERMISSION_URL: ${{ inputs.docs_mac_permission_url }}
+      RELAY_SETUP_TUTORIAL_URL: ${{ inputs.relay_setup_tutorial_url }}
+      BUNDLE_ID: ${{ inputs.bundle_id }}
+      SUPPORT_EMAIL: ${{ inputs.support_email }}
+      SLOGAN_EN: ${{ inputs.slogan_en }}
+      SLOGAN_CN: ${{ inputs.slogan_cn }}
+      UPDATE_CHECK_API_URL: ${{ inputs.update_check_api_url }}
+      AUTO_UPDATE_ENABLED: ${{ inputs.auto_update_enabled }}
+      SETTINGS_SCOPE: ${{ inputs.settings_scope }}
+      CONNECTION_DIRECTION: ${{ inputs.connection_direction }}
+      DISABLE_INSTALLATION: ${{ inputs.disable_installation }}
+      DISABLE_SETTINGS: ${{ inputs.disable_settings }}
+      PERMANENT_PASSWORD: ${{ inputs.permanent_password }}
+      ACCESS_MODE: ${{ inputs.access_mode }}
+      APPROVE_MODE: ${{ inputs.approve_mode }}
+      VERIFICATION_METHOD: ${{ inputs.verification_method }}
+      ALLOW_NUMERIC_ONE_TIME_PASSWORD: ${{ inputs.allow_numeric_one_time_password }}
+      TEMPORARY_PASSWORD_LENGTH: ${{ inputs.temporary_password_length }}
+      ENABLE_KEYBOARD: ${{ inputs.enable_keyboard }}
+      ENABLE_CLIPBOARD: ${{ inputs.enable_clipboard }}
+      ENABLE_FILE_TRANSFER: ${{ inputs.enable_file_transfer }}
+      ENABLE_AUDIO: ${{ inputs.enable_audio }}
+      ENABLE_TUNNEL: ${{ inputs.enable_tunnel }}
+      ENABLE_REMOTE_RESTART: ${{ inputs.enable_remote_restart }}
+      ENABLE_RECORD_SESSION: ${{ inputs.enable_record_session }}
+      ENABLE_BLOCK_INPUT: ${{ inputs.enable_block_input }}
+      ALLOW_REMOTE_CONFIG_MODIFICATION: ${{ inputs.allow_remote_config_modification }}
+      ENABLE_REMOTE_PRINTER: ${{ inputs.enable_remote_printer }}
+      ENABLE_CAMERA: ${{ inputs.enable_camera }}
+      ENABLE_TERMINAL: ${{ inputs.enable_terminal }}
+      ENABLE_LAN_DISCOVERY: ${{ inputs.enable_lan_discovery }}
+      DIRECT_SERVER: ${{ inputs.direct_server }}
+      DIRECT_ACCESS_PORT: ${{ inputs.direct_access_port }}
+      WHITELIST: ${{ inputs.whitelist }}
+      ALLOW_AUTO_DISCONNECT: ${{ inputs.allow_auto_disconnect }}
+      AUTO_DISCONNECT_TIMEOUT: ${{ inputs.auto_disconnect_timeout }}
+      ALLOW_ONLY_CONN_WINDOW_OPEN: ${{ inputs.allow_only_conn_window_open }}
+      ALLOW_HIDE_CM: ${{ inputs.allow_hide_cm }}
+      ALLOW_AUTO_RECORD_INCOMING: ${{ inputs.allow_auto_record_incoming }}
+      ALLOW_AUTO_RECORD_OUTGOING: ${{ inputs.allow_auto_record_outgoing }}
+      ENABLE_ABR: ${{ inputs.enable_abr }}
+      ENABLE_HWCODEC: ${{ inputs.enable_hwcodec }}
+      ALLOW_ALWAYS_SOFTWARE_RENDER: ${{ inputs.allow_always_software_render }}
+      ALLOW_LINUX_HEADLESS: ${{ inputs.allow_linux_headless }}
+      ENABLE_UDP_PUNCH: ${{ inputs.enable_udp_punch }}
+      ENABLE_IPV6_PUNCH: ${{ inputs.enable_ipv6_punch }}
+      ENABLE_DIRECTX_CAPTURE: ${{ inputs.enable_directx_capture }}
+      ENABLE_TRUSTED_DEVICES: ${{ inputs.enable_trusted_devices }}
+      KEEP_AWAKE_DURING_INCOMING_SESSIONS: ${{ inputs.keep_awake_during_incoming_sessions }}
+      KEEP_AWAKE_DURING_OUTGOING_SESSIONS: ${{ inputs.keep_awake_during_outgoing_sessions }}
+      ALLOW_ASK_FOR_NOTE: ${{ inputs.allow_ask_for_note }}
+      ALLOW_WEBSOCKET: ${{ inputs.allow_websocket }}
+      DISABLE_UDP: ${{ inputs.disable_udp }}
+      ALLOW_INSECURE_TLS_FALLBACK: ${{ inputs.allow_insecure_tls_fallback }}
+      FIX_THIRD_PARTY_API_LATENCY: ${{ inputs.fix_third_party_api_latency }}
+      THIRD_PARTY_API_TIMEOUT_SECS: ${{ inputs.third_party_api_timeout_secs }}
+      ALLOW_REMOVE_WALLPAPER: ${{ inputs.allow_remove_wallpaper }}
+      DISABLE_CHANGE_PERMANENT_PASSWORD: ${{ inputs.disable_change_permanent_password }}
+      DISABLE_CHANGE_ID: ${{ inputs.disable_change_id }}
+      DISABLE_UNLOCK_PIN: ${{ inputs.disable_unlock_pin }}
+      CUSTOM_RENDEZVOUS_SERVER: ${{ inputs.custom_rendezvous_server }}
+      CUSTOM_SERVER_KEY: ${{ inputs.custom_server_key }}
+      RELAY_SERVER: ${{ inputs.relay_server }}
+      ICE_SERVERS: ${{ inputs.ice_servers }}
+      PROXY_URL: ${{ inputs.proxy_url }}
+      PROXY_USERNAME: ${{ inputs.proxy_username }}
+      PROXY_PASSWORD: ${{ inputs.proxy_password }}
+      PRESET_ADDRESS_BOOK_NAME: ${{ inputs.preset_address_book_name }}
+      PRESET_ADDRESS_BOOK_TAG: ${{ inputs.preset_address_book_tag }}
+      PRESET_ADDRESS_BOOK_ALIAS: ${{ inputs.preset_address_book_alias }}
+      PRESET_ADDRESS_BOOK_PASSWORD: ${{ inputs.preset_address_book_password }}
+      PRESET_ADDRESS_BOOK_NOTE: ${{ inputs.preset_address_book_note }}
+      PRESET_DEVICE_USERNAME: ${{ inputs.preset_device_username }}
+      PRESET_DEVICE_NAME: ${{ inputs.preset_device_name }}
+      PRESET_NOTE: ${{ inputs.preset_note }}
+      ENABLE_ANDROID_SOFTWARE_ENCODING_HALF_SCALE: ${{ inputs.enable_android_software_encoding_half_scale }}
+      HIDE_SECURITY_SETTINGS: ${{ inputs.hide_security_settings }}
+      HIDE_NETWORK_SETTINGS: ${{ inputs.hide_network_settings }}
+      HIDE_SERVER_SETTINGS: ${{ inputs.hide_server_settings }}
+      HIDE_PROXY_SETTINGS: ${{ inputs.hide_proxy_settings }}
+      HIDE_REMOTE_PRINTER_SETTINGS: ${{ inputs.hide_remote_printer_settings }}
+      HIDE_WEBSOCKET_SETTINGS: ${{ inputs.hide_websocket_settings }}
+      HIDE_USERNAME_ON_CARD: ${{ inputs.hide_username_on_card }}
+      HIDE_HELP_CARDS: ${{ inputs.hide_help_cards }}
+      HIDE_TRAY: ${{ inputs.hide_tray }}
+      REMOVE_PRESET_PASSWORD_WARNING: ${{ inputs.remove_preset_password_warning }}
+      DEFAULT_CONNECT_PASSWORD: ${{ inputs.default_connect_password }}
+      ONE_WAY_CLIPBOARD_REDIRECTION: ${{ inputs.one_way_clipboard_redirection }}
+      ONE_WAY_FILE_TRANSFER: ${{ inputs.one_way_file_transfer }}
+      ALLOW_LOGON_SCREEN_PASSWORD: ${{ inputs.allow_logon_screen_password }}
+      ALLOW_HTTPS_21114: ${{ inputs.allow_https_21114 }}
+      ALLOW_HOSTNAME_AS_ID: ${{ inputs.allow_hostname_as_id }}
+      REGISTER_DEVICE: ${{ inputs.register_device }}
+      MAIN_WINDOW_ALWAYS_ON_TOP: ${{ inputs.main_window_always_on_top }}
+      FILE_TRANSFER_MAX_FILES: ${{ inputs.file_transfer_max_files }}
+      DISPLAY_NAME: ${{ inputs.display_name }}
+      PRESET_DEVICE_GROUP_NAME: ${{ inputs.preset_device_group_name }}
+      PRESET_USERNAME: ${{ inputs.preset_username }}
+      PRESET_STRATEGY_NAME: ${{ inputs.preset_strategy_name }}
+      AVATAR: ${{ inputs.avatar }}
+      HIDE_POWERED_BY: ${{ inputs.hide_powered_by }}
+      UI_PRESET: ${{ inputs.ui_preset }}
+    steps:
+      - name: Checkout factory repository
+        uses: actions/checkout@v4
+
+      - name: Check token
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN}" || {
+            echo "Missing secret FACTORY_TOKEN"
+            exit 1
+          }
+          gh auth status
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          [[ "${NEW_REPO}" =~ ^[a-zA-Z0-9._-]+$ ]] || {
+            echo "Invalid new_repo: ${NEW_REPO}"
+            exit 1
+          }
+          [[ "${SOURCE_REPO}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || {
+            echo "Invalid source_repo: ${SOURCE_REPO}"
+            exit 1
+          }
+          [[ "${VERSION}" =~ ^[A-Za-z0-9._/-]+$ ]] || {
+            echo "Invalid version: ${VERSION}"
+            exit 1
+          }
+          if [ -n "${SOURCE_REF}" ]; then
+            [[ "${SOURCE_REF}" =~ ^[A-Za-z0-9._/-]+$ ]] || {
+              echo "Invalid source_ref: ${SOURCE_REF}"
+              exit 1
+            }
+          fi
+          [[ "${DEFAULT_BRANCH}" =~ ^[a-zA-Z0-9._/-]+$ ]] || {
+            echo "Invalid default_branch: ${DEFAULT_BRANCH}"
+            exit 1
+          }
+          [[ "${EXE_NAME}" =~ ^[A-Za-z0-9._-]+$ ]] || {
+            echo "Invalid exe_name: ${EXE_NAME}"
+            exit 1
+          }
+
+          for key in APP_NAME COMPANY_NAME RENDEZVOUS_SERVER PUB_KEY API_SERVER WEBSITE_URL DOWNLOAD_URL PRIVACY_URL PRICING_URL DOCS_HOME_URL DOCS_X11_URL DOCS_PERMISSIONS_URL DOCS_LOGIN_SCREEN_URL DOCS_MAC_PERMISSION_URL RELAY_SETUP_TUTORIAL_URL BUNDLE_ID SUPPORT_EMAIL SLOGAN_EN SLOGAN_CN UPDATE_CHECK_API_URL; do
+            value="${!key}"
+            if [ -z "${value}" ]; then
+              echo "${key} cannot be empty"
+              exit 1
+            fi
+            if printf '%s' "${value}" | grep -Eq '[\r\n]'; then
+              echo "${key} cannot contain newline"
+              exit 1
+            fi
+          done
+          [[ "${BUNDLE_ID}" =~ ^[A-Za-z0-9]+(\.[A-Za-z0-9-]+)+$ ]] || {
+            echo "Invalid bundle_id: ${BUNDLE_ID}"
+            exit 1
+          }
+          [[ "${SUPPORT_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || {
+            echo "Invalid support_email: ${SUPPORT_EMAIL}"
+            exit 1
+          }
+          for key in API_SERVER WEBSITE_URL DOWNLOAD_URL PRIVACY_URL PRICING_URL DOCS_HOME_URL DOCS_X11_URL DOCS_PERMISSIONS_URL DOCS_LOGIN_SCREEN_URL DOCS_MAC_PERMISSION_URL RELAY_SETUP_TUTORIAL_URL UPDATE_CHECK_API_URL; do
+            value="${!key}"
+            [[ "${value}" =~ ^https?://[^[:space:]]+$ ]] || {
+              echo "${key} must start with http:// or https://"
+              exit 1
+            }
+          done
+          [[ "${AUTO_UPDATE_ENABLED}" == "true" || "${AUTO_UPDATE_ENABLED}" == "false" ]] || {
+            echo "auto_update_enabled must be true or false"
+            exit 1
+          }
+          [[ "${SETTINGS_SCOPE}" == "default" || "${SETTINGS_SCOPE}" == "override" ]] || {
+            echo "settings_scope must be default or override"
+            exit 1
+          }
+          [[ "${CONNECTION_DIRECTION}" == "both" || "${CONNECTION_DIRECTION}" == "incoming" || "${CONNECTION_DIRECTION}" == "outgoing" ]] || {
+            echo "connection_direction must be both, incoming, or outgoing"
+            exit 1
+          }
+          [[ "${ACCESS_MODE}" == "custom" || "${ACCESS_MODE}" == "full" || "${ACCESS_MODE}" == "view" ]] || {
+            echo "access_mode must be custom, full, or view"
+            exit 1
+          }
+          [[ "${APPROVE_MODE}" == "password" || "${APPROVE_MODE}" == "click" || "${APPROVE_MODE}" == "password-click" ]] || {
+            echo "approve_mode must be password, click, or password-click"
+            exit 1
+          }
+          [[ "${VERIFICATION_METHOD}" == "use-temporary-password" || "${VERIFICATION_METHOD}" == "use-permanent-password" || "${VERIFICATION_METHOD}" == "use-both-passwords" ]] || {
+            echo "verification_method is invalid"
+            exit 1
+          }
+          [[ "${ALLOW_NUMERIC_ONE_TIME_PASSWORD}" == "true" || "${ALLOW_NUMERIC_ONE_TIME_PASSWORD}" == "false" ]] || {
+            echo "allow_numeric_one_time_password must be true or false"
+            exit 1
+          }
+          [[ "${TEMPORARY_PASSWORD_LENGTH}" == "6" || "${TEMPORARY_PASSWORD_LENGTH}" == "8" || "${TEMPORARY_PASSWORD_LENGTH}" == "10" ]] || {
+            echo "temporary_password_length must be 6, 8, or 10"
+            exit 1
+          }
+          if printf '%s' "${PERMANENT_PASSWORD}" | grep -Eq '[\r\n]'; then
+            echo "permanent_password cannot contain newline"
+            exit 1
+          fi
+          if printf '%s' "${WHITELIST}" | grep -Eq '[\r\n]'; then
+            echo "whitelist cannot contain newline"
+            exit 1
+          fi
+          for key in CUSTOM_RENDEZVOUS_SERVER CUSTOM_SERVER_KEY RELAY_SERVER ICE_SERVERS PROXY_URL PROXY_USERNAME PROXY_PASSWORD PRESET_ADDRESS_BOOK_NAME PRESET_ADDRESS_BOOK_TAG PRESET_ADDRESS_BOOK_ALIAS PRESET_ADDRESS_BOOK_PASSWORD PRESET_ADDRESS_BOOK_NOTE PRESET_DEVICE_USERNAME PRESET_DEVICE_NAME PRESET_NOTE DEFAULT_CONNECT_PASSWORD DISPLAY_NAME PRESET_DEVICE_GROUP_NAME PRESET_USERNAME PRESET_STRATEGY_NAME AVATAR; do
+            value="${!key}"
+            if printf '%s' "${value}" | grep -Eq '[\r\n]'; then
+              echo "${key} cannot contain newline"
+              exit 1
+            fi
+          done
+          if [ -n "${DIRECT_ACCESS_PORT}" ]; then
+            [[ "${DIRECT_ACCESS_PORT}" =~ ^[0-9]+$ ]] || {
+              echo "direct_access_port must be integer"
+              exit 1
+            }
+            if [ "${DIRECT_ACCESS_PORT}" -lt 1 ] || [ "${DIRECT_ACCESS_PORT}" -gt 65535 ]; then
+              echo "direct_access_port must be between 1 and 65535"
+              exit 1
+            fi
+          fi
+          if [ -n "${AUTO_DISCONNECT_TIMEOUT}" ]; then
+            [[ "${AUTO_DISCONNECT_TIMEOUT}" =~ ^[0-9]+$ ]] || {
+              echo "auto_disconnect_timeout must be integer"
+              exit 1
+            }
+            if [ "${AUTO_DISCONNECT_TIMEOUT}" -lt 0 ] || [ "${AUTO_DISCONNECT_TIMEOUT}" -gt 65535 ]; then
+              echo "auto_disconnect_timeout must be between 0 and 65535"
+              exit 1
+            fi
+          fi
+          [[ "${FIX_THIRD_PARTY_API_LATENCY}" == "true" || "${FIX_THIRD_PARTY_API_LATENCY}" == "false" ]] || {
+            echo "fix_third_party_api_latency must be true or false"
+            exit 1
+          }
+          if [ -n "${THIRD_PARTY_API_TIMEOUT_SECS}" ]; then
+            [[ "${THIRD_PARTY_API_TIMEOUT_SECS}" =~ ^[0-9]+$ ]] || {
+              echo "third_party_api_timeout_secs must be integer"
+              exit 1
+            }
+            if [ "${THIRD_PARTY_API_TIMEOUT_SECS}" -lt 2 ] || [ "${THIRD_PARTY_API_TIMEOUT_SECS}" -gt 60 ]; then
+              echo "third_party_api_timeout_secs must be between 2 and 60"
+              exit 1
+            fi
+          fi
+          if [ -n "${FILE_TRANSFER_MAX_FILES}" ]; then
+            [[ "${FILE_TRANSFER_MAX_FILES}" =~ ^[0-9]+$ ]] || {
+              echo "file_transfer_max_files must be integer"
+              exit 1
+            }
+            if [ "${FILE_TRANSFER_MAX_FILES}" -lt 0 ] || [ "${FILE_TRANSFER_MAX_FILES}" -gt 100000 ]; then
+              echo "file_transfer_max_files must be between 0 and 100000"
+              exit 1
+            fi
+          fi
+          for key in DISABLE_INSTALLATION DISABLE_SETTINGS ENABLE_KEYBOARD ENABLE_CLIPBOARD ENABLE_FILE_TRANSFER ENABLE_AUDIO ENABLE_TUNNEL ENABLE_REMOTE_RESTART ENABLE_RECORD_SESSION ENABLE_BLOCK_INPUT ALLOW_REMOTE_CONFIG_MODIFICATION ENABLE_REMOTE_PRINTER ENABLE_CAMERA ENABLE_TERMINAL ENABLE_LAN_DISCOVERY DIRECT_SERVER ALLOW_AUTO_DISCONNECT ALLOW_ONLY_CONN_WINDOW_OPEN ALLOW_HIDE_CM ALLOW_AUTO_RECORD_INCOMING ALLOW_AUTO_RECORD_OUTGOING ENABLE_ABR ENABLE_HWCODEC ALLOW_ALWAYS_SOFTWARE_RENDER ALLOW_LINUX_HEADLESS ENABLE_UDP_PUNCH ENABLE_IPV6_PUNCH ENABLE_DIRECTX_CAPTURE ENABLE_TRUSTED_DEVICES KEEP_AWAKE_DURING_INCOMING_SESSIONS KEEP_AWAKE_DURING_OUTGOING_SESSIONS ALLOW_ASK_FOR_NOTE ALLOW_WEBSOCKET DISABLE_UDP ALLOW_INSECURE_TLS_FALLBACK ALLOW_REMOVE_WALLPAPER DISABLE_CHANGE_PERMANENT_PASSWORD DISABLE_CHANGE_ID DISABLE_UNLOCK_PIN ENABLE_ANDROID_SOFTWARE_ENCODING_HALF_SCALE HIDE_SECURITY_SETTINGS HIDE_NETWORK_SETTINGS HIDE_SERVER_SETTINGS HIDE_PROXY_SETTINGS HIDE_REMOTE_PRINTER_SETTINGS HIDE_WEBSOCKET_SETTINGS HIDE_USERNAME_ON_CARD HIDE_HELP_CARDS HIDE_TRAY REMOVE_PRESET_PASSWORD_WARNING ONE_WAY_CLIPBOARD_REDIRECTION ONE_WAY_FILE_TRANSFER ALLOW_LOGON_SCREEN_PASSWORD ALLOW_HTTPS_21114 ALLOW_HOSTNAME_AS_ID REGISTER_DEVICE MAIN_WINDOW_ALWAYS_ON_TOP; do
+            value="${!key}"
+            [[ "${value}" == "true" || "${value}" == "false" ]] || {
+              echo "${key} must be true or false"
+              exit 1
+            }
+          done
+          [[ "${HIDE_POWERED_BY}" == "true" || "${HIDE_POWERED_BY}" == "false" ]] || {
+            echo "hide_powered_by must be true or false"
+            exit 1
+          }
+          [[ "${UI_PRESET}" == "standard" || "${UI_PRESET}" == "mini-host-id-password" || "${UI_PRESET}" == "controller-desktop-only" ]] || {
+            echo "ui_preset is invalid"
+            exit 1
+          }
+
+      - name: Resolve checkout ref
+        run: |
+          set -euo pipefail
+          REF="${SOURCE_REF}"
+          if [ -z "${REF}" ]; then
+            REF="${VERSION}"
+          fi
+          echo "CHECKOUT_REF=${REF}" >>"${GITHUB_ENV}"
+          echo "Using checkout ref: ${REF}"
+
+      - name: Ensure target repository does not exist
+        run: |
+          set -euo pipefail
+          if gh repo view "${OWNER}/${NEW_REPO}" >/dev/null 2>&1; then
+            echo "Target repository already exists: ${OWNER}/${NEW_REPO}"
+            exit 1
+          fi
+
+      - name: Create target repository
+        run: |
+          set -euo pipefail
+          if [ "${VISIBILITY}" = "public" ]; then
+            gh repo create "${OWNER}/${NEW_REPO}" --public --confirm
+          else
+            gh repo create "${OWNER}/${NEW_REPO}" --private --confirm
+          fi
+
+      - name: Clone RustDesk source
+        run: |
+          set -euo pipefail
+          git clone \
+            --branch "${CHECKOUT_REF}" \
+            --single-branch \
+            --recurse-submodules \
+            "https://x-access-token:${GH_TOKEN}@github.com/${SOURCE_REPO}.git" \
+            project
+
+      - name: Apply RustDesk customizations
+        working-directory: project
+        run: |
+          set -euo pipefail
+          python3 ../scripts/rustdesk_customize.py \
+            --app-name "${APP_NAME}" \
+            --exe-name "${EXE_NAME}" \
+            --company-name "${COMPANY_NAME}" \
+            --rendezvous-server "${RENDEZVOUS_SERVER}" \
+            --pub-key "${PUB_KEY}" \
+            --api-server "${API_SERVER}" \
+            --website-url "${WEBSITE_URL}" \
+            --download-url "${DOWNLOAD_URL}" \
+            --privacy-url "${PRIVACY_URL}" \
+            --pricing-url "${PRICING_URL}" \
+            --docs-home-url "${DOCS_HOME_URL}" \
+            --docs-x11-url "${DOCS_X11_URL}" \
+            --docs-permissions-url "${DOCS_PERMISSIONS_URL}" \
+            --docs-login-screen-url "${DOCS_LOGIN_SCREEN_URL}" \
+            --docs-mac-permission-url "${DOCS_MAC_PERMISSION_URL}" \
+            --relay-setup-tutorial-url "${RELAY_SETUP_TUTORIAL_URL}" \
+            --bundle-id "${BUNDLE_ID}" \
+            --support-email "${SUPPORT_EMAIL}" \
+            --slogan-en "${SLOGAN_EN}" \
+            --slogan-cn "${SLOGAN_CN}" \
+            --update-check-api-url "${UPDATE_CHECK_API_URL}" \
+            --auto-update-enabled "${AUTO_UPDATE_ENABLED}" \
+            --settings-scope "${SETTINGS_SCOPE}" \
+            --connection-direction "${CONNECTION_DIRECTION}" \
+            --disable-installation "${DISABLE_INSTALLATION}" \
+            --disable-settings "${DISABLE_SETTINGS}" \
+            --permanent-password "${PERMANENT_PASSWORD}" \
+            --access-mode "${ACCESS_MODE}" \
+            --approve-mode "${APPROVE_MODE}" \
+            --verification-method "${VERIFICATION_METHOD}" \
+            --allow-numeric-one-time-password "${ALLOW_NUMERIC_ONE_TIME_PASSWORD}" \
+            --temporary-password-length "${TEMPORARY_PASSWORD_LENGTH}" \
+            --enable-lan-discovery "${ENABLE_LAN_DISCOVERY}" \
+            --direct-server "${DIRECT_SERVER}" \
+            --direct-access-port "${DIRECT_ACCESS_PORT}" \
+            --whitelist "${WHITELIST}" \
+            --allow-auto-disconnect "${ALLOW_AUTO_DISCONNECT}" \
+            --auto-disconnect-timeout "${AUTO_DISCONNECT_TIMEOUT}" \
+            --allow-only-conn-window-open "${ALLOW_ONLY_CONN_WINDOW_OPEN}" \
+            --allow-hide-cm "${ALLOW_HIDE_CM}" \
+            --allow-auto-record-incoming "${ALLOW_AUTO_RECORD_INCOMING}" \
+            --allow-auto-record-outgoing "${ALLOW_AUTO_RECORD_OUTGOING}" \
+            --enable-abr "${ENABLE_ABR}" \
+            --enable-hwcodec "${ENABLE_HWCODEC}" \
+            --allow-always-software-render "${ALLOW_ALWAYS_SOFTWARE_RENDER}" \
+            --allow-linux-headless "${ALLOW_LINUX_HEADLESS}" \
+            --enable-udp-punch "${ENABLE_UDP_PUNCH}" \
+            --enable-ipv6-punch "${ENABLE_IPV6_PUNCH}" \
+            --enable-directx-capture "${ENABLE_DIRECTX_CAPTURE}" \
+            --enable-trusted-devices "${ENABLE_TRUSTED_DEVICES}" \
+            --keep-awake-during-incoming-sessions "${KEEP_AWAKE_DURING_INCOMING_SESSIONS}" \
+            --keep-awake-during-outgoing-sessions "${KEEP_AWAKE_DURING_OUTGOING_SESSIONS}" \
+            --allow-ask-for-note "${ALLOW_ASK_FOR_NOTE}" \
+            --allow-websocket "${ALLOW_WEBSOCKET}" \
+            --disable-udp "${DISABLE_UDP}" \
+            --allow-insecure-tls-fallback "${ALLOW_INSECURE_TLS_FALLBACK}" \
+            --fix-third-party-api-latency "${FIX_THIRD_PARTY_API_LATENCY}" \
+            --third-party-api-timeout-secs "${THIRD_PARTY_API_TIMEOUT_SECS}" \
+            --allow-remove-wallpaper "${ALLOW_REMOVE_WALLPAPER}" \
+            --enable-keyboard "${ENABLE_KEYBOARD}" \
+            --enable-clipboard "${ENABLE_CLIPBOARD}" \
+            --enable-file-transfer "${ENABLE_FILE_TRANSFER}" \
+            --enable-audio "${ENABLE_AUDIO}" \
+            --enable-tunnel "${ENABLE_TUNNEL}" \
+            --enable-remote-restart "${ENABLE_REMOTE_RESTART}" \
+            --enable-record-session "${ENABLE_RECORD_SESSION}" \
+            --enable-block-input "${ENABLE_BLOCK_INPUT}" \
+            --allow-remote-config-modification "${ALLOW_REMOTE_CONFIG_MODIFICATION}" \
+            --enable-remote-printer "${ENABLE_REMOTE_PRINTER}" \
+            --enable-camera "${ENABLE_CAMERA}" \
+            --enable-terminal "${ENABLE_TERMINAL}" \
+            --disable-change-permanent-password "${DISABLE_CHANGE_PERMANENT_PASSWORD}" \
+            --disable-change-id "${DISABLE_CHANGE_ID}" \
+            --disable-unlock-pin "${DISABLE_UNLOCK_PIN}" \
+            --custom-rendezvous-server "${CUSTOM_RENDEZVOUS_SERVER}" \
+            --custom-server-key "${CUSTOM_SERVER_KEY}" \
+            --relay-server "${RELAY_SERVER}" \
+            --ice-servers "${ICE_SERVERS}" \
+            --proxy-url "${PROXY_URL}" \
+            --proxy-username "${PROXY_USERNAME}" \
+            --proxy-password "${PROXY_PASSWORD}" \
+            --preset-address-book-name "${PRESET_ADDRESS_BOOK_NAME}" \
+            --preset-address-book-tag "${PRESET_ADDRESS_BOOK_TAG}" \
+            --preset-address-book-alias "${PRESET_ADDRESS_BOOK_ALIAS}" \
+            --preset-address-book-password "${PRESET_ADDRESS_BOOK_PASSWORD}" \
+            --preset-address-book-note "${PRESET_ADDRESS_BOOK_NOTE}" \
+            --preset-device-username "${PRESET_DEVICE_USERNAME}" \
+            --preset-device-name "${PRESET_DEVICE_NAME}" \
+            --preset-note "${PRESET_NOTE}" \
+            --enable-android-software-encoding-half-scale "${ENABLE_ANDROID_SOFTWARE_ENCODING_HALF_SCALE}" \
+            --hide-security-settings "${HIDE_SECURITY_SETTINGS}" \
+            --hide-network-settings "${HIDE_NETWORK_SETTINGS}" \
+            --hide-server-settings "${HIDE_SERVER_SETTINGS}" \
+            --hide-proxy-settings "${HIDE_PROXY_SETTINGS}" \
+            --hide-remote-printer-settings "${HIDE_REMOTE_PRINTER_SETTINGS}" \
+            --hide-websocket-settings "${HIDE_WEBSOCKET_SETTINGS}" \
+            --hide-username-on-card "${HIDE_USERNAME_ON_CARD}" \
+            --hide-help-cards "${HIDE_HELP_CARDS}" \
+            --hide-tray "${HIDE_TRAY}" \
+            --remove-preset-password-warning "${REMOVE_PRESET_PASSWORD_WARNING}" \
+            --default-connect-password "${DEFAULT_CONNECT_PASSWORD}" \
+            --one-way-clipboard-redirection "${ONE_WAY_CLIPBOARD_REDIRECTION}" \
+            --one-way-file-transfer "${ONE_WAY_FILE_TRANSFER}" \
+            --allow-logon-screen-password "${ALLOW_LOGON_SCREEN_PASSWORD}" \
+            --allow-https-21114 "${ALLOW_HTTPS_21114}" \
+            --allow-hostname-as-id "${ALLOW_HOSTNAME_AS_ID}" \
+            --register-device "${REGISTER_DEVICE}" \
+            --main-window-always-on-top "${MAIN_WINDOW_ALWAYS_ON_TOP}" \
+            --file-transfer-max-files "${FILE_TRANSFER_MAX_FILES}" \
+            --display-name "${DISPLAY_NAME}" \
+            --preset-device-group-name "${PRESET_DEVICE_GROUP_NAME}" \
+            --preset-username "${PRESET_USERNAME}" \
+            --preset-strategy-name "${PRESET_STRATEGY_NAME}" \
+            --avatar "${AVATAR}" \
+            --hide-powered-by "${HIDE_POWERED_BY}" \
+            --ui-preset "${UI_PRESET}"
+
+      - name: Push customized source
+        working-directory: project
+        run: |
+          set -euo pipefail
+          git config user.name "factory-bot"
+          git config user.email "factory-bot@users.noreply.github.com"
+          git remote remove origin
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${OWNER}/${NEW_REPO}.git"
+          git checkout -B "${DEFAULT_BRANCH}"
+          git add -A
+          git commit -m "chore: initialize rustdesk customization" || true
+          git push -u origin "${DEFAULT_BRANCH}"
+
+      - name: Set default branch
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${OWNER}/${NEW_REPO}" \
+            -f default_branch="${DEFAULT_BRANCH}"
+
+      - name: Summary
+        run: |
+          echo "Created: https://github.com/${OWNER}/${NEW_REPO}"
+          echo "Source: ${SOURCE_REPO}@${CHECKOUT_REF}"
+          echo "Version input: ${VERSION}"
