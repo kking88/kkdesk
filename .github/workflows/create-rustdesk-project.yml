@@ -548,6 +548,39 @@ jobs:
             --hide-powered-by "${HIDE_POWERED_BY}" \
             --ui-preset "${UI_PRESET}"
 
+      - name: Materialize customized hbb_common
+        working-directory: project
+        run: |
+          set -euo pipefail
+
+          if [ ! -d libs/hbb_common ]; then
+            echo "libs/hbb_common not found, skip."
+            exit 0
+          fi
+
+          if [ ! -e libs/hbb_common/.git ]; then
+            echo "libs/hbb_common is already a regular directory, skip."
+            exit 0
+          fi
+
+          if git -C libs/hbb_common diff --quiet && git -C libs/hbb_common diff --cached --quiet; then
+            echo "No hbb_common customization detected, keep submodule."
+            exit 0
+          fi
+
+          echo "Detected customized hbb_common; converting submodule to tracked files."
+          git rm --cached libs/hbb_common
+          rm -rf libs/hbb_common/.git .git/modules/libs/hbb_common
+
+          if [ -f .gitmodules ]; then
+            git config -f .gitmodules --remove-section submodule.libs/hbb_common || true
+            if ! grep -qE '^\[submodule "' .gitmodules; then
+              rm -f .gitmodules
+            fi
+          fi
+
+          git add -A
+
       - name: Push customized source
         working-directory: project
         run: |
