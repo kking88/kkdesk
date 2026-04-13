@@ -205,6 +205,13 @@ jobs:
       - name: Validate inputs
         run: |
           set -euo pipefail
+          has_crlf() {
+            case "$1" in
+              *$'\n'*|*$'\r'*) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+
           [[ "${NEW_REPO}" =~ ^[a-zA-Z0-9._-]+$ ]] || {
             echo "Invalid new_repo: ${NEW_REPO}"
             exit 1
@@ -238,7 +245,7 @@ jobs:
               echo "${key} cannot be empty"
               exit 1
             fi
-            if printf '%s' "${value}" | grep -Eq '[\r\n]'; then
+            if has_crlf "${value}"; then
               echo "${key} cannot contain newline"
               exit 1
             fi
@@ -290,17 +297,17 @@ jobs:
             echo "temporary_password_length must be 6, 8, or 10"
             exit 1
           }
-          if printf '%s' "${PERMANENT_PASSWORD}" | grep -Eq '[\r\n]'; then
+          if has_crlf "${PERMANENT_PASSWORD}"; then
             echo "permanent_password cannot contain newline"
             exit 1
           fi
-          if printf '%s' "${WHITELIST}" | grep -Eq '[\r\n]'; then
+          if has_crlf "${WHITELIST}"; then
             echo "whitelist cannot contain newline"
             exit 1
           fi
           for key in CUSTOM_RENDEZVOUS_SERVER CUSTOM_SERVER_KEY RELAY_SERVER ICE_SERVERS PROXY_URL PROXY_USERNAME PROXY_PASSWORD PRESET_ADDRESS_BOOK_NAME PRESET_ADDRESS_BOOK_TAG PRESET_ADDRESS_BOOK_ALIAS PRESET_ADDRESS_BOOK_PASSWORD PRESET_ADDRESS_BOOK_NOTE PRESET_DEVICE_USERNAME PRESET_DEVICE_NAME PRESET_NOTE DEFAULT_CONNECT_PASSWORD DISPLAY_NAME PRESET_DEVICE_GROUP_NAME PRESET_USERNAME PRESET_STRATEGY_NAME AVATAR; do
             value="${!key}"
-            if printf '%s' "${value}" | grep -Eq '[\r\n]'; then
+            if has_crlf "${value}"; then
               echo "${key} cannot contain newline"
               exit 1
             fi
