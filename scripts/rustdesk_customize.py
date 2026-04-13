@@ -1119,6 +1119,24 @@ def main() -> int:
         ("flutter/macos/Runner/Info.plist", "com.carriez.rustdesk", bundle_id, False),
         ("flutter/ios/Runner/Info.plist", "com.carriez.rustdesk", bundle_id, False),
         ("flutter/macos/Runner.xcodeproj/project.pbxproj", "com.carriez.rustdesk", bundle_id, False),
+        (
+            ".github/workflows/flutter-build.yml",
+            "rustdesk-${{ env.VERSION }}",
+            f"{exe_stem}-${{{{ env.VERSION }}}}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "rustdesk-unsigned-",
+            f"{exe_stem}-unsigned-",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "rustdesk*",
+            f"{exe_stem}*",
+            False,
+        ),
     ]
 
     if fix_third_party_api_latency:
