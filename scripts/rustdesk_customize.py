@@ -1137,6 +1137,86 @@ def main() -> int:
             f"{exe_stem}*",
             False,
         ),
+        (
+            ".github/workflows/flutter-build.yml",
+            """      - name: Install LLVM and Clang
+        uses: rustdesk-org/install-llvm-action-32bit@master
+        with:
+          version: ${{ env.LLVM_VERSION }}
+""",
+            """      - name: Install LLVM and Clang (attempt 1)
+        id: install_llvm_1
+        continue-on-error: true
+        uses: rustdesk-org/install-llvm-action-32bit@master
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Install LLVM and Clang (attempt 2)
+        if: steps.install_llvm_1.outcome == 'failure'
+        id: install_llvm_2
+        continue-on-error: true
+        uses: rustdesk-org/install-llvm-action-32bit@master
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Ensure LLVM and Clang installed
+        if: steps.install_llvm_1.outcome == 'failure' && steps.install_llvm_2.outcome == 'failure'
+        run: |
+          echo "Install LLVM and Clang failed twice."
+          exit 1
+""",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            # build vcpkg helper executable with gcc-8 for arm-linux but use prebuilt one on x64-linux\n"
+            "            if [ \"${{ matrix.job.vcpkg-triplet }}\" = \"arm-linux\" ]; then\n",
+            """            # build vcpkg helper executable with gcc-8 for arm-linux but use prebuilt one on x64-linux
+            bootstrap_vcpkg_with_retry() {
+              local attempt=1
+              local max_attempts=3
+              while true; do
+                if "$@"; then
+                  return 0
+                fi
+                if [ "${attempt}" -ge "${max_attempts}" ]; then
+                  echo "bootstrap-vcpkg failed after ${max_attempts} attempts"
+                  return 1
+                fi
+                local wait_seconds=$((attempt * 20))
+                echo "bootstrap-vcpkg failed (attempt ${attempt}/${max_attempts}), retry in ${wait_seconds}s..."
+                sleep "${wait_seconds}"
+                attempt=$((attempt + 1))
+              done
+            }
+            if [ "${{ matrix.job.vcpkg-triplet }}" = "arm-linux" ]; then
+""",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "              CC=/usr/bin/gcc-8 CXX=/usr/bin/g++-8 sh bootstrap-vcpkg.sh -disableMetrics",
+            "              bootstrap_vcpkg_with_retry env CC=/usr/bin/gcc-8 CXX=/usr/bin/g++-8 sh bootstrap-vcpkg.sh -disableMetrics",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "              sh bootstrap-vcpkg.sh -disableMetrics",
+            "              bootstrap_vcpkg_with_retry sh bootstrap-vcpkg.sh -disableMetrics",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            wget --output-document rust.tar.gz https://static.rust-lang.org/dist/rust-${{env.RUST_TOOLCHAIN_VERSION}}-${{ matrix.job.target }}.tar.gz",
+            "            wget --tries=5 --waitretry=8 --retry-connrefused --output-document rust.tar.gz https://static.rust-lang.org/dist/rust-${{env.RUST_TOOLCHAIN_VERSION}}-${{ matrix.job.target }}.tar.gz",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            wget --output-document nasm.deb \"http://ftp.us.debian.org/debian/pool/main/n/nasm/nasm_${{ env.SCITER_NASM_DEBVERSION }}_${{ matrix.job.deb_arch }}.deb\"",
+            "            wget --tries=5 --waitretry=8 --retry-connrefused --output-document nasm.deb \"http://ftp.us.debian.org/debian/pool/main/n/nasm/nasm_${{ env.SCITER_NASM_DEBVERSION }}_${{ matrix.job.deb_arch }}.deb\"",
+            False,
+        ),
     ]
 
     if fix_third_party_api_latency:
