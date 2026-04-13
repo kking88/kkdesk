@@ -28,6 +28,11 @@ on:
         description: "New repository name"
         required: true
         type: string
+      profile_json:
+        description: "Packed profile JSON from backend (optional)"
+        required: false
+        default: ""
+        type: string
       visibility:
         description: "public or private"
         required: true
@@ -842,6 +847,7 @@ jobs:
       SOURCE_REPO: ${{ inputs.source_repo }}
       SOURCE_REF: ${{ inputs.source_ref }}
       NEW_REPO: ${{ inputs.new_repo }}
+      PROFILE_JSON: ${{ inputs.profile_json }}
       DEFAULT_BRANCH: ${{ inputs.default_branch }}
       VISIBILITY: ${{ inputs.visibility }}
       APP_NAME: ${{ inputs.app_name }}
@@ -972,6 +978,43 @@ jobs:
             exit 1
           }
           gh auth status
+
+      - name: Apply packed profile overrides
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          raw = os.environ.get("PROFILE_JSON", "").strip()
+          if not raw:
+              print("PROFILE_JSON is empty, using workflow_dispatch inputs/defaults.")
+              sys.exit(0)
+
+          try:
+              data = json.loads(raw)
+          except Exception as exc:
+              print(f"Invalid PROFILE_JSON: {exc}")
+              sys.exit(1)
+
+          if not isinstance(data, dict):
+              print("PROFILE_JSON must be a JSON object")
+              sys.exit(1)
+
+          env_file = os.environ["GITHUB_ENV"]
+          with open(env_file, "a", encoding="utf-8") as fp:
+              for key, value in data.items():
+                  if value is None:
+                      continue
+                  env_key = str(key).strip().upper().replace("-", "_")
+                  if not env_key:
+                      continue
+                  env_val = str(value).replace("\r", " ").replace("\n", " ")
+                  fp.write(f"{env_key}={env_val}\n")
+
+          print(f"Applied {len(data)} keys from PROFILE_JSON")
+          PY
 
       - name: Validate inputs
         run: |
@@ -1316,8 +1359,40 @@ jobs:
             "repos/${OWNER}/${NEW_REPO}" \
             -f default_branch="${DEFAULT_BRANCH}"
 
+      - name: Auto trigger multi-platform build
+        run: |
+          set -euo pipefail
+          # Let GitHub index the new workflow files before dispatch.
+          sleep 8
+
+          WORKFLOW_FILE=""
+          for candidate in flutter-nightly.yml flutter-tag.yml flutter-ci.yml ci.yml; do
+            if gh api \
+              --method POST \
+              "repos/${OWNER}/${NEW_REPO}/actions/workflows/${candidate}/dispatches" \
+              -f ref="${DEFAULT_BRANCH}" >/dev/null 2>&1; then
+              WORKFLOW_FILE="${candidate}"
+              break
+            fi
+          done
+
+          if [ -n "${WORKFLOW_FILE}" ]; then
+            echo "BUILD_TRIGGERED=true" >>"${GITHUB_ENV}"
+            echo "BUILD_WORKFLOW_FILE=${WORKFLOW_FILE}" >>"${GITHUB_ENV}"
+            echo "Auto-triggered build workflow: ${WORKFLOW_FILE}"
+          else
+            echo "BUILD_TRIGGERED=false" >>"${GITHUB_ENV}"
+            echo "BUILD_WORKFLOW_FILE=" >>"${GITHUB_ENV}"
+            echo "No dispatchable build workflow found or token has no workflow permission; skipped auto-trigger."
+          fi
+
       - name: Summary
         run: |
           echo "Created: https://github.com/${OWNER}/${NEW_REPO}"
           echo "Source: ${SOURCE_REPO}@${CHECKOUT_REF}"
           echo "Version input: ${VERSION}"
+          echo "Build triggered: ${BUILD_TRIGGERED:-false}"
+          if [ "${BUILD_TRIGGERED:-false}" = "true" ]; then
+            echo "Build workflow: ${BUILD_WORKFLOW_FILE}"
+            echo "Build runs: https://github.com/${OWNER}/${NEW_REPO}/actions"
+          fi
