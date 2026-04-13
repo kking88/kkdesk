@@ -30,7 +30,7 @@ jobs:
       NEW_REPO: ${{ inputs.new_repo }}
       PROFILE_JSON: ${{ inputs.profile_json }}
       DEFAULT_BRANCH: ""
-      VISIBILITY: ""
+      VISIBILITY: "public"
       APP_NAME: ""
       EXE_NAME: ""
       COMPANY_NAME: ""
@@ -232,6 +232,10 @@ jobs:
           fi
           [[ "${DEFAULT_BRANCH}" =~ ^[a-zA-Z0-9._/-]+$ ]] || {
             echo "Invalid default_branch: ${DEFAULT_BRANCH}"
+            exit 1
+          }
+          [[ "${VISIBILITY}" == "public" || "${VISIBILITY}" == "private" ]] || {
+            echo "visibility must be public or private"
             exit 1
           }
           [[ "${EXE_NAME}" =~ ^[A-Za-z0-9._-]+$ ]] || {
