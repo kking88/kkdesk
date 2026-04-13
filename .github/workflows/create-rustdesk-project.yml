@@ -191,7 +191,12 @@ jobs:
                   env_key = str(key).strip().upper().replace("-", "_")
                   if not env_key:
                       continue
-                  env_val = str(value).replace("\r", " ").replace("\n", " ")
+                  raw_val = str(value)
+                  if env_key in ("PUB_KEY", "CUSTOM_SERVER_KEY"):
+                      # Users often paste keys with line wraps; strip all whitespace.
+                      env_val = "".join(raw_val.split())
+                  else:
+                      env_val = raw_val.replace("\r", " ").replace("\n", " ")
                   fp.write(f"{env_key}={env_val}\n")
 
           print(f"Applied {len(data)} keys from PROFILE_JSON")
