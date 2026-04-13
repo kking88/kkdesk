@@ -399,6 +399,19 @@ jobs:
             gh repo create "${OWNER}/${NEW_REPO}" --private --confirm
           fi
 
+      - name: Ensure Actions workflow token can publish releases
+        run: |
+          set -euo pipefail
+          if gh api \
+            --method PUT \
+            "repos/${OWNER}/${NEW_REPO}/actions/permissions/workflow" \
+            -f default_workflow_permissions=write \
+            -F can_approve_pull_request_reviews=false >/dev/null 2>&1; then
+            echo "Set default_workflow_permissions=write for ${OWNER}/${NEW_REPO}"
+          else
+            echo "Warning: failed to set Actions workflow permissions to write; release publish may fail."
+          fi
+
       - name: Clone RustDesk source
         run: |
           set -euo pipefail
