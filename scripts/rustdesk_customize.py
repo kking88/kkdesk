@@ -1139,6 +1139,151 @@ def main() -> int:
         ),
         (
             ".github/workflows/flutter-build.yml",
+            "          sha256sum ../../SignOutput/rustdesk-*.msi",
+            f"          sha256sum ../../SignOutput/{exe_stem}-*.msi",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            ./SignOutput/rustdesk-*.msi\n"
+            "            ./SignOutput/rustdesk-*.exe",
+            f"            ./SignOutput/{exe_stem}-*.msi\n"
+            f"            ./SignOutput/{exe_stem}-*.exe",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            ./SignOutput/rustdesk-*.exe",
+            f"            ./SignOutput/{exe_stem}-*.exe",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            export DEB_ARCH=${{ matrix.job.deb_arch }}\n"
+            "            python3 ./build.py --flutter --skip-cargo\n"
+            f"            for name in {exe_stem}*??.deb; do\n"
+            "              mv \"$name\" \"${name%%.deb}-${{ matrix.job.arch }}.deb\"\n"
+            "            done\n"
+            "\n"
+            "            # rpm package\n"
+            "            echo -e \"start packaging fedora package\"\n"
+            "            pushd /workspace\n"
+            "            case ${{ matrix.job.arch }} in\n"
+            "              aarch64)\n"
+            "                sed -i \"s/linux\\/x64/linux\\/arm64/g\" ./res/rpm-flutter.spec\n"
+            "                ;;\n"
+            "            esac\n"
+            "            HBB=`pwd` rpmbuild ./res/rpm-flutter.spec -bb\n"
+            "            pushd ~/rpmbuild/RPMS/${{ matrix.job.arch }}\n"
+            f"            for name in {exe_stem}*??.rpm; do\n"
+            "                mv \"$name\" /workspace/\"${name%%.rpm}.rpm\"\n"
+            "            done\n"
+            "\n"
+            "            # rpm suse package\n"
+            "            echo -e \"start packaging suse package\"\n"
+            "            pushd /workspace\n"
+            "            case ${{ matrix.job.arch }} in\n"
+            "              aarch64)\n"
+            "                sed -i \"s/linux\\/x64/linux\\/arm64/g\" ./res/rpm-flutter-suse.spec\n"
+            "                ;;\n"
+            "            esac\n"
+            "            HBB=`pwd` rpmbuild ./res/rpm-flutter-suse.spec -bb\n"
+            "            pushd ~/rpmbuild/RPMS/${{ matrix.job.arch }}\n"
+            f"            for name in {exe_stem}*??.rpm; do\n"
+            "                mv \"$name\" /workspace/\"${name%%.rpm}-suse.rpm\"\n"
+            "            done",
+            f"""            export DEB_ARCH=${{{{ matrix.job.deb_arch }}}}
+            python3 ./build.py --flutter --skip-cargo
+            shopt -s nullglob
+            found_deb=0
+            for name in {exe_stem}*.deb rustdesk*.deb; do
+              mv "$name" "{exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}.deb"
+              found_deb=1
+              break
+            done
+            if [ "${{found_deb}}" -eq 0 ]; then
+              echo "No deb package found after build.py --flutter --skip-cargo"
+              ls -la /workspace
+              exit 1
+            fi
+
+            # rpm package
+            echo -e "start packaging fedora package"
+            pushd /workspace
+            case ${{{{ matrix.job.arch }}}} in
+              aarch64)
+                sed -i "s/linux\\/x64/linux\\/arm64/g" ./res/rpm-flutter.spec
+                ;;
+            esac
+            HBB=`pwd` rpmbuild ./res/rpm-flutter.spec -bb
+            pushd ~/rpmbuild/RPMS/${{{{ matrix.job.arch }}}}
+            found_rpm=0
+            for name in {exe_stem}*.rpm rustdesk*.rpm; do
+                mv "$name" /workspace/{exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}.rpm
+                found_rpm=1
+                break
+            done
+            if [ "${{found_rpm}}" -eq 0 ]; then
+              echo "No rpm package found after rpmbuild ./res/rpm-flutter.spec -bb"
+              ls -la ~/rpmbuild/RPMS/${{{{ matrix.job.arch }}}}
+              exit 1
+            fi
+
+            # rpm suse package
+            echo -e "start packaging suse package"
+            pushd /workspace
+            case ${{{{ matrix.job.arch }}}} in
+              aarch64)
+                sed -i "s/linux\\/x64/linux\\/arm64/g" ./res/rpm-flutter-suse.spec
+                ;;
+            esac
+            HBB=`pwd` rpmbuild ./res/rpm-flutter-suse.spec -bb
+            pushd ~/rpmbuild/RPMS/${{{{ matrix.job.arch }}}}
+            found_rpm_suse=0
+            for name in {exe_stem}*.rpm rustdesk*.rpm; do
+                mv "$name" /workspace/{exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}-suse.rpm
+                found_rpm_suse=1
+                break
+            done
+            if [ "${{found_rpm_suse}}" -eq 0 ]; then
+              echo "No suse rpm package found after rpmbuild ./res/rpm-flutter-suse.spec -bb"
+              ls -la ~/rpmbuild/RPMS/${{{{ matrix.job.arch }}}}
+              exit 1
+            fi""",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "            rustdesk-*.deb\n"
+            "            rustdesk-*.rpm",
+            f"            {exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}.deb\n"
+            f"            {exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}.rpm\n"
+            f"            {exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}-suse.rpm",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            f"          for name in {exe_stem}*??.deb; do\n"
+            "              # use cp to duplicate deb files to fit other packages.\n"
+            "              cp \"$name\" \"${name%%.deb}-${{ matrix.job.arch }}-sciter.deb\"\n"
+            "          done",
+            f"""          shopt -s nullglob
+          found_sciter_deb=0
+          for name in {exe_stem}*.deb rustdesk*.deb; do
+              # use cp to duplicate deb files to fit other packages.
+              cp "$name" "{exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}-sciter.deb"
+              found_sciter_deb=1
+              break
+          done
+          if [ "${{found_sciter_deb}}" -eq 0 ]; then
+            echo "No sciter deb package found in workspace"
+            ls -la
+            exit 1
+          fi""",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
             """      - name: Install LLVM and Clang
         uses: rustdesk-org/install-llvm-action-32bit@master
         with:
