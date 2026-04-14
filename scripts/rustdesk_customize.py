@@ -33,6 +33,29 @@ def replace_literal(path: str, old: str, new: str, *, required: bool = False) ->
     return count
 
 
+def ensure_literal(path: str, snippet: str) -> None:
+    file_path = ROOT / path
+    if not file_path.exists():
+        raise RuntimeError(f"required file not found: {path}")
+    content = file_path.read_text(encoding="utf-8")
+    if snippet not in content:
+        raise RuntimeError(f"required snippet not found in {path}: {snippet}")
+
+
+def replace_glob_literal(pattern: str, old: str, new: str) -> int:
+    total = 0
+    for file_path in ROOT.glob(pattern):
+        if not file_path.is_file():
+            continue
+        content = file_path.read_text(encoding="utf-8")
+        count = content.count(old)
+        if count == 0 or old == new:
+            continue
+        file_path.write_text(content.replace(old, new), encoding="utf-8")
+        total += count
+    return total
+
+
 def check_single_line(name: str, value: str) -> str:
     cleaned = value.strip()
     if not cleaned:
@@ -510,7 +533,7 @@ def main() -> int:
         (
             "libs/hbb_common/src/config.rs",
             "pub const LINK_HEADLESS_LINUX_SUPPORT: &str =\n    \"https://github.com/rustdesk/rustdesk/wiki/Headless-Linux-Support\";\n\nlazy_static::lazy_static! {\n    pub static ref HELPER_URL: HashMap<&'static str, &'static str> = HashMap::from([\n",
-            "pub const LINK_HEADLESS_LINUX_SUPPORT: &str =\n    \"https://github.com/rustdesk/rustdesk/wiki/Headless-Linux-Support\";\n\nfn parse_factory_map(raw: &str) -> HashMap<String, String> {\n    serde_json::from_str(raw).unwrap_or_default()\n}\n\nfn factory_settings_scope() -> &'static str {\n    \"__FACTORY_SETTINGS_SCOPE__\"\n}\n\nfn factory_default_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"default\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_overwrite_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"override\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_hard_settings() -> HashMap<String, String> {\n    let mut map = parse_factory_map(r#\"__FACTORY_HARD_JSON__\"#);\n    if map.get(\"password\").map(|v| v.is_empty()).unwrap_or(false) {\n        map.remove(\"password\");\n    }\n    if map.get(\"conn-type\").map(|v| v == \"both\").unwrap_or(false) {\n        map.remove(\"conn-type\");\n    }\n    map\n}\n\nfn factory_builtin_settings() -> HashMap<String, String> {\n    parse_factory_map(r#\"__FACTORY_BUILTIN_JSON__\"#)\n}\n\nlazy_static::lazy_static! {\n    pub static ref HELPER_URL: HashMap<&'static str, &'static str> = HashMap::from([\n",
+            "pub const LINK_HEADLESS_LINUX_SUPPORT: &str =\n    \"https://github.com/rustdesk/rustdesk/wiki/Headless-Linux-Support\";\n\nfn parse_factory_map(raw: &str) -> HashMap<String, String> {\n    serde_json::from_str(raw).unwrap_or_default()\n}\n\nfn factory_settings_scope() -> &'static str {\n    \"__FACTORY_SETTINGS_SCOPE__\"\n}\n\nfn factory_default_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"default\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_overwrite_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"override\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_default_display_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"default\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_overwrite_display_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"override\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_default_local_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"default\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_overwrite_local_settings() -> HashMap<String, String> {\n    if factory_settings_scope() == \"override\" {\n        parse_factory_map(r#\"__FACTORY_SETTINGS_JSON__\"#)\n    } else {\n        HashMap::new()\n    }\n}\n\nfn factory_hard_settings() -> HashMap<String, String> {\n    let mut map = parse_factory_map(r#\"__FACTORY_HARD_JSON__\"#);\n    if map.get(\"password\").map(|v| v.is_empty()).unwrap_or(false) {\n        map.remove(\"password\");\n    }\n    if map.get(\"conn-type\").map(|v| v == \"both\").unwrap_or(false) {\n        map.remove(\"conn-type\");\n    }\n    map\n}\n\nfn factory_builtin_settings() -> HashMap<String, String> {\n    parse_factory_map(r#\"__FACTORY_BUILTIN_JSON__\"#)\n}\n\nlazy_static::lazy_static! {\n    pub static ref HELPER_URL: HashMap<&'static str, &'static str> = HashMap::from([\n",
             True,
         ),
         (
@@ -523,6 +546,30 @@ def main() -> int:
             "libs/hbb_common/src/config.rs",
             "pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();",
             "pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_settings());",
+            True,
+        ),
+        (
+            "libs/hbb_common/src/config.rs",
+            "pub static ref DEFAULT_DISPLAY_SETTINGS: RwLock<HashMap<String, String>> = Default::default();",
+            "pub static ref DEFAULT_DISPLAY_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_default_display_settings());",
+            True,
+        ),
+        (
+            "libs/hbb_common/src/config.rs",
+            "pub static ref OVERWRITE_DISPLAY_SETTINGS: RwLock<HashMap<String, String>> = Default::default();",
+            "pub static ref OVERWRITE_DISPLAY_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_display_settings());",
+            True,
+        ),
+        (
+            "libs/hbb_common/src/config.rs",
+            "pub static ref DEFAULT_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = Default::default();",
+            "pub static ref DEFAULT_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_default_local_settings());",
+            True,
+        ),
+        (
+            "libs/hbb_common/src/config.rs",
+            "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = Default::default();",
+            "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_local_settings());",
             True,
         ),
         (
@@ -737,6 +784,146 @@ def main() -> int:
             "flutter/lib/desktop/pages/connection_page.dart",
             'const url = "https://rustdesk.com/pricing";',
             f'const url = "{pricing_url}";',
+            False,
+        ),
+        (
+            "flutter/lib/desktop/pages/desktop_setting_page.dart",
+            """            // if (usePassword)
+            //   hide_cm(!locked).marginOnly(left: _kContentHSubMargin - 6),""",
+            """            if (usePassword)
+              hide_cm(!locked).marginOnly(left: _kContentHSubMargin - 6),""",
+            False,
+        ),
+        (
+            "flutter/lib/main.dart",
+            "  gFFI.serverModel.hideCm = hide;",
+            "  // gFFI.serverModel.hideCm = hide;",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            "  bool hideCm = false;",
+            "  bool _hideCm = false;",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            "  bool get clipboardOk => _clipboardOk;\n\n  bool get showElevation => _showElevation;",
+            "  bool get clipboardOk => _clipboardOk;\n\n  bool get hideCm => _hideCm;\n\n  bool get showElevation => _showElevation;",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            """  setVerificationMethod(String method) async {
+    await bind.mainSetOption(key: kOptionVerificationMethod, value: method);
+    /*
+    if (method != kUsePermanentPassword) {
+      await bind.mainSetOption(
+          key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
+    }
+    */
+  }""",
+            """  setVerificationMethod(String method) async {
+    await bind.mainSetOption(key: kOptionVerificationMethod, value: method);
+    if (method != kUsePermanentPassword) {
+      await bind.mainSetOption(
+          key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
+    }
+  }""",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            """  setApproveMode(String mode) async {
+    await bind.mainSetOption(key: kOptionApproveMode, value: mode);
+    /*
+    if (mode != 'password') {
+      await bind.mainSetOption(
+          key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
+    }
+    */
+  }""",
+            """  setApproveMode(String mode) async {
+    await bind.mainSetOption(key: kOptionApproveMode, value: mode);
+    if (mode != 'password') {
+      await bind.mainSetOption(
+          key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
+    }
+  }""",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            """    /*
+    // initital _hideCm at startup
+    final verificationMethod =
+        bind.mainGetOptionSync(key: kOptionVerificationMethod);
+    final approveMode = bind.mainGetOptionSync(key: kOptionApproveMode);
+    _hideCm = option2bool(
+        'allow-hide-cm', bind.mainGetOptionSync(key: 'allow-hide-cm'));
+    if (!(approveMode == 'password' &&
+        verificationMethod == kUsePermanentPassword)) {
+      _hideCm = false;
+    }
+    */
+""",
+            """    // initital _hideCm at startup
+    final verificationMethod =
+        bind.mainGetOptionSync(key: kOptionVerificationMethod);
+    final approveMode = bind.mainGetOptionSync(key: kOptionApproveMode);
+    _hideCm = option2bool(
+        'allow-hide-cm', bind.mainGetOptionSync(key: 'allow-hide-cm'));
+    if (!(approveMode == 'password' &&
+        verificationMethod == kUsePermanentPassword)) {
+      _hideCm = false;
+    }
+""",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            """    /*
+    var hideCm = option2bool(
+        'allow-hide-cm', await bind.mainGetOption(key: 'allow-hide-cm'));
+    if (!(approveMode == 'password' &&
+        verificationMethod == kUsePermanentPassword)) {
+      hideCm = false;
+    }
+    */""",
+            """    var hideCm = option2bool(
+        'allow-hide-cm', await bind.mainGetOption(key: 'allow-hide-cm'));
+    if (!(approveMode == 'password' &&
+        verificationMethod == kUsePermanentPassword)) {
+      hideCm = false;
+    }""",
+            False,
+        ),
+        (
+            "flutter/lib/models/server_model.dart",
+            """    /*
+    if (_hideCm != hideCm) {
+      _hideCm = hideCm;
+      if (desktopType == DesktopType.cm) {
+        if (hideCm) {
+          await hideCmWindow();
+        } else {
+          await showCmWindow();
+        }
+      }
+      update = true;
+    }
+    */""",
+            """    if (_hideCm != hideCm) {
+      _hideCm = hideCm;
+      if (desktopType == DesktopType.cm) {
+        if (hideCm) {
+          await hideCmWindow();
+        } else {
+          await showCmWindow();
+        }
+      }
+      update = true;
+    }""",
             False,
         ),
         (
@@ -1407,6 +1594,38 @@ def main() -> int:
         if count > 0:
             file_stats[path] = file_stats.get(path, 0) + count
             replaced_total += count
+
+    # Keep UI copy consistent with the custom brand name.
+    if app_name != "RustDesk":
+        lang_replaced = replace_glob_literal("src/lang/*.rs", "RustDesk", app_name)
+        if lang_replaced > 0:
+            file_stats["src/lang/*.rs"] = file_stats.get("src/lang/*.rs", 0) + lang_replaced
+            replaced_total += lang_replaced
+
+    # Validate critical runtime options are really embedded after patching.
+    ensure_literal("libs/hbb_common/src/config.rs", f'RwLock::new("{app_name}".to_owned())')
+    ensure_literal(
+        "libs/hbb_common/src/config.rs",
+        f'pub const RENDEZVOUS_SERVERS: &[&str] = &["{rendezvous_server}"];',
+    )
+    ensure_literal("libs/hbb_common/src/config.rs", f'pub const RS_PUB_KEY: &str = "{pub_key}";')
+    ensure_literal("libs/hbb_common/src/config.rs", f'"allow-hide-cm": "{yn(allow_hide_cm)}"')
+    ensure_literal("libs/hbb_common/src/config.rs", f'"custom-ui-mode": "{ui_preset}"')
+    ensure_literal(
+        "libs/hbb_common/src/config.rs",
+        "pub static ref DEFAULT_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_default_local_settings());",
+    )
+    ensure_literal(
+        "libs/hbb_common/src/config.rs",
+        "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_local_settings());",
+    )
+    ensure_literal("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)")
+
+    server_model = (ROOT / "flutter/lib/models/server_model.dart").read_text(encoding="utf-8")
+    if "/*\n    var hideCm = option2bool(" in server_model:
+        raise RuntimeError("allow-hide-cm runtime block is still commented in server_model.dart")
+    if "/*\n    if (_hideCm != hideCm) {" in server_model:
+        raise RuntimeError("allow-hide-cm update block is still commented in server_model.dart")
 
     print(json.dumps({"replacements": replaced_total, "files": file_stats}, ensure_ascii=False))
     return 0

@@ -548,6 +548,64 @@ jobs:
             --hide-powered-by "${HIDE_POWERED_BY}" \
             --ui-preset "${UI_PRESET}"
 
+      - name: Verify critical customization markers
+        working-directory: project
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          def must_contain(path: str, needle: str, failures: list[str]) -> None:
+              text = Path(path).read_text(encoding="utf-8")
+              if needle not in text:
+                  failures.append(f"{path}: missing `{needle}`")
+
+          failures: list[str] = []
+          app_name = os.environ["APP_NAME"]
+          rendezvous_server = os.environ["RENDEZVOUS_SERVER"]
+          pub_key = os.environ["PUB_KEY"]
+          settings_scope = os.environ["SETTINGS_SCOPE"]
+          allow_hide_cm = "Y" if os.environ["ALLOW_HIDE_CM"] == "true" else "N"
+          ui_preset = os.environ["UI_PRESET"]
+
+          must_contain("libs/hbb_common/src/config.rs", f'RwLock::new("{app_name}".to_owned())', failures)
+          must_contain(
+              "libs/hbb_common/src/config.rs",
+              f'pub const RENDEZVOUS_SERVERS: &[&str] = &["{rendezvous_server}"];',
+              failures,
+          )
+          must_contain("libs/hbb_common/src/config.rs", f'pub const RS_PUB_KEY: &str = "{pub_key}";', failures)
+          must_contain("libs/hbb_common/src/config.rs", f'"allow-hide-cm": "{allow_hide_cm}"', failures)
+          must_contain("libs/hbb_common/src/config.rs", f'"custom-ui-mode": "{ui_preset}"', failures)
+          must_contain("libs/hbb_common/src/config.rs", f'"{settings_scope}"', failures)
+          must_contain(
+              "libs/hbb_common/src/config.rs",
+              "pub static ref DEFAULT_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_default_local_settings());",
+              failures,
+          )
+          must_contain(
+              "libs/hbb_common/src/config.rs",
+              "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_local_settings());",
+              failures,
+          )
+          must_contain("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)", failures)
+
+          server_model = Path("flutter/lib/models/server_model.dart").read_text(encoding="utf-8")
+          if "/*\n    var hideCm = option2bool(" in server_model:
+              failures.append("flutter/lib/models/server_model.dart: hide-cm runtime block is still commented")
+          if "/*\n    if (_hideCm != hideCm) {" in server_model:
+              failures.append("flutter/lib/models/server_model.dart: hide-cm update block is still commented")
+
+          if failures:
+              print("Customization verification failed:")
+              for item in failures:
+                  print(f" - {item}")
+              sys.exit(1)
+          print("Customization verification passed.")
+          PY
+
       - name: Materialize customized hbb_common
         working-directory: project
         run: |
