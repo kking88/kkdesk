@@ -564,6 +564,9 @@ jobs:
 
           failures: list[str] = []
           app_name = os.environ["APP_NAME"]
+          exe_name = os.environ["EXE_NAME"]
+          exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name
+          service_exe_stem = f"{exe_stem}_service"
           rendezvous_server = os.environ["RENDEZVOUS_SERVER"]
           pub_key = os.environ["PUB_KEY"]
           settings_scope = os.environ["SETTINGS_SCOPE"]
@@ -588,6 +591,12 @@ jobs:
           must_contain(
               "libs/hbb_common/src/config.rs",
               "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_local_settings());",
+              failures,
+          )
+          must_contain("Cargo.toml", f'name = "{service_exe_stem}"', failures)
+          must_contain(
+              "src/platform/privileges_scripts/daemon.plist",
+              f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
               failures,
           )
           must_contain("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)", failures)

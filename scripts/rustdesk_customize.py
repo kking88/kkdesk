@@ -394,6 +394,7 @@ def main() -> int:
 
     exe_name = exe_name_raw if exe_name_raw.lower().endswith(".exe") else f"{exe_name_raw}.exe"
     exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name
+    service_exe_stem = f"{exe_stem}_service"
     app_description = f"{app_name} Remote Desktop"
 
     factory_settings = {
@@ -659,6 +660,7 @@ def main() -> int:
         ),
         ("Cargo.toml", 'OriginalFilename = "rustdesk.exe"', f'OriginalFilename = "{exe_name}"', True),
         ("Cargo.toml", 'name = "RustDesk"', f'name = "{app_name}"', False),
+        ("Cargo.toml", 'name = "service"', f'name = "{service_exe_stem}"', False),
         ("Cargo.toml", 'identifier = "com.carriez.rustdesk"', f'identifier = "{bundle_id}"', True),
         (
             "libs/portable/Cargo.toml",
@@ -719,6 +721,48 @@ def main() -> int:
             'VALUE "ProductName", "RustDesk" "\\0"',
             f'VALUE "ProductName", "{app_name}" "\\0"',
             True,
+        ),
+        (
+            "build.py",
+            "cp -rf ../target/release/service ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/",
+            f"cp -rf ../target/release/{service_exe_stem} ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/",
+            False,
+        ),
+        (
+            "src/platform/privileges_scripts/daemon.plist",
+            "/Applications/RustDesk.app/Contents/MacOS/service",
+            f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
+            False,
+        ),
+        (
+            "src/platform/privileges_scripts/daemon.plist",
+            "/tmp/rustdesk_service.err",
+            f"/tmp/{exe_stem}_service.err",
+            False,
+        ),
+        (
+            "src/platform/privileges_scripts/daemon.plist",
+            "/tmp/rustdesk_service.out",
+            f"/tmp/{exe_stem}_service.out",
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            "ExecStart=/usr/bin/rustdesk --service",
+            f"ExecStart=/usr/bin/{exe_stem} --service",
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            'ExecStop=pkill -f "rustdesk --"',
+            f'ExecStop=pkill -f "{exe_stem} --"',
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            "PIDFile=/run/rustdesk.pid",
+            f"PIDFile=/run/{exe_stem}.pid",
+            False,
         ),
         ("Cargo.toml", "Purslane Ltd", company_name, False),
         ("libs/portable/Cargo.toml", "Purslane Ltd", company_name, False),
@@ -1611,6 +1655,7 @@ def main() -> int:
     ensure_literal("libs/hbb_common/src/config.rs", f'pub const RS_PUB_KEY: &str = "{pub_key}";')
     ensure_literal("libs/hbb_common/src/config.rs", f'"allow-hide-cm": "{yn(allow_hide_cm)}"')
     ensure_literal("libs/hbb_common/src/config.rs", f'"custom-ui-mode": "{ui_preset}"')
+    ensure_literal("Cargo.toml", f'name = "{service_exe_stem}"')
     ensure_literal(
         "libs/hbb_common/src/config.rs",
         "pub static ref DEFAULT_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_default_local_settings());",
@@ -1620,6 +1665,10 @@ def main() -> int:
         "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_local_settings());",
     )
     ensure_literal("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)")
+    ensure_literal(
+        "src/platform/privileges_scripts/daemon.plist",
+        f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
+    )
 
     server_model = (ROOT / "flutter/lib/models/server_model.dart").read_text(encoding="utf-8")
     if "/*\n    var hideCm = option2bool(" in server_model:
