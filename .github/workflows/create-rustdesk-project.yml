@@ -567,6 +567,7 @@ jobs:
           exe_name = os.environ["EXE_NAME"]
           exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name
           service_exe_stem = f"{exe_stem}_service"
+          mac_app_bundle = f"{app_name}.app"
           rendezvous_server = os.environ["RENDEZVOUS_SERVER"]
           pub_key = os.environ["PUB_KEY"]
           settings_scope = os.environ["SETTINGS_SCOPE"]
@@ -596,7 +597,22 @@ jobs:
           must_contain("Cargo.toml", f'name = "{service_exe_stem}"', failures)
           must_contain(
               "src/platform/privileges_scripts/daemon.plist",
-              f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
+              f"/Applications/{mac_app_bundle}/Contents/MacOS/{service_exe_stem}",
+              failures,
+          )
+          must_contain(
+              "src/platform/privileges_scripts/daemon.plist",
+              f"/Applications/{mac_app_bundle}/Contents/MacOS/",
+              failures,
+          )
+          must_contain(
+              "appimage/AppImageBuilder-x86_64.yml",
+              f"exec: usr/share/rustdesk/{exe_stem}",
+              failures,
+          )
+          must_contain(
+              "appimage/AppImageBuilder-aarch64.yml",
+              f"exec: usr/share/rustdesk/{exe_stem}",
               failures,
           )
           must_contain(
