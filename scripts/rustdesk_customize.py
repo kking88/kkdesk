@@ -397,6 +397,7 @@ def main() -> int:
 
     exe_name = exe_name_raw if exe_name_raw.lower().endswith(".exe") else f"{exe_name_raw}.exe"
     exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name
+    portable_app_prefix = exe_stem.lower()
     service_exe_stem = f"{exe_stem}_service"
     mac_app_bundle = f"{app_name}.app"
     app_description = f"{app_name} Remote Desktop"
@@ -934,6 +935,12 @@ def main() -> int:
             "src/privacy_mode/win_topmost_window.rs",
             'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_rustdesk.exe";',
             f'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_{exe_stem}.exe";',
+            False,
+        ),
+        (
+            "libs/portable/src/main.rs",
+            'const APP_PREFIX: &str = "rustdesk";',
+            f'const APP_PREFIX: &str = "{portable_app_prefix}";',
             False,
         ),
         (
@@ -1642,6 +1649,18 @@ def main() -> int:
         ),
         (
             ".github/workflows/flutter-build.yml",
+            "          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe",
+            f"          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/{exe_name}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "          python3 ./generate.py -f ../../Release/ -o . -e ../../Release/rustdesk.exe",
+            f"          python3 ./generate.py -f ../../Release/ -o . -e ../../Release/{exe_name}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
             "rustdesk-${{ env.VERSION }}",
             f"{exe_stem}-${{{{ env.VERSION }}}}",
             False,
@@ -1967,6 +1986,7 @@ def main() -> int:
         "src/platform/privileges_scripts/daemon.plist",
         f"/Applications/{mac_app_bundle}/Contents/MacOS/",
     )
+    ensure_literal("libs/portable/src/main.rs", f'const APP_PREFIX: &str = "{portable_app_prefix}";')
     ensure_literal("flutter/windows/CMakeLists.txt", f'set(BINARY_NAME "{exe_stem}")')
     ensure_literal("src/privacy_mode/win_topmost_window.rs", f'RuntimeBroker_{exe_stem}.exe')
     ensure_literal("res/rustdesk.service", f"ExecStart=/usr/bin/{exe_stem} --service")
