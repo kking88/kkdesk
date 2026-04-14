@@ -539,6 +539,12 @@ def main() -> int:
         ),
         (
             "libs/hbb_common/src/config.rs",
+            'pub static ref APP_NAME: RwLock<String> = RwLock::new("RustDesk".to_owned());',
+            f'pub static ref APP_NAME: RwLock<String> = RwLock::new("{app_name}".to_owned());',
+            True,
+        ),
+        (
+            "libs/hbb_common/src/config.rs",
             "__FACTORY_SETTINGS_SCOPE__",
             settings_scope,
             True,
