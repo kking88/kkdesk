@@ -395,6 +395,7 @@ def main() -> int:
     exe_name = exe_name_raw if exe_name_raw.lower().endswith(".exe") else f"{exe_name_raw}.exe"
     exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name
     service_exe_stem = f"{exe_stem}_service"
+    mac_app_bundle = f"{app_name}.app"
     app_description = f"{app_name} Remote Desktop"
 
     factory_settings = {
@@ -867,6 +868,18 @@ def main() -> int:
             False,
         ),
         (
+            "appimage/AppImageBuilder-x86_64.yml",
+            "exec: usr/share/rustdesk/rustdesk",
+            f"exec: usr/share/rustdesk/{exe_stem}",
+            False,
+        ),
+        (
+            "appimage/AppImageBuilder-aarch64.yml",
+            "exec: usr/share/rustdesk/rustdesk",
+            f"exec: usr/share/rustdesk/{exe_stem}",
+            False,
+        ),
+        (
             "src/privacy_mode/win_topmost_window.rs",
             'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_rustdesk.exe";',
             f'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_{exe_stem}.exe";',
@@ -909,6 +922,12 @@ def main() -> int:
             False,
         ),
         (
+            "build.py",
+            "hbb_name = 'rustdesk' + ('.exe' if windows else '')",
+            f"hbb_name = '{exe_stem}' + ('.exe' if windows else '')",
+            False,
+        ),
+        (
             "src/server/portable_service.rs",
             'let dst = dir.join("rustdesk.exe");',
             f'let dst = dir.join("{exe_name}");',
@@ -917,13 +936,19 @@ def main() -> int:
         (
             "build.py",
             "cp -rf ../target/release/service ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/",
-            f"cp -rf ../target/release/{service_exe_stem} ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/",
+            f'cp -rf ../target/release/{service_exe_stem} "$(ls -d ./build/macos/Build/Products/Release/*.app | head -n 1)/Contents/MacOS/"',
             False,
         ),
         (
             "src/platform/privileges_scripts/daemon.plist",
             "/Applications/RustDesk.app/Contents/MacOS/service",
-            f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
+            f"/Applications/{mac_app_bundle}/Contents/MacOS/{service_exe_stem}",
+            False,
+        ),
+        (
+            "src/platform/privileges_scripts/daemon.plist",
+            "/Applications/RustDesk.app/Contents/MacOS/",
+            f"/Applications/{mac_app_bundle}/Contents/MacOS/",
             False,
         ),
         (
@@ -1532,6 +1557,40 @@ def main() -> int:
         ("flutter/macos/Runner.xcodeproj/project.pbxproj", "com.carriez.rustdesk", bundle_id, False),
         (
             ".github/workflows/flutter-build.yml",
+            "          python preprocess.py --arp -d ../../rustdesk\n"
+            "          nuget restore msi.sln\n"
+            "          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10",
+            f'          python preprocess.py --arp -d ../../rustdesk --app-name "{exe_stem}" --manufacturer "{company_name}" --version "${{{{ env.VERSION }}}}"\n'
+            "          nuget restore msi.sln\n"
+            "          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            '          create-dmg --icon "RustDesk.app" 200 190 --hide-extension "RustDesk.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg ./flutter/build/macos/Build/Products/Release/RustDesk.app',
+            f"          APP_BUNDLE=\"$(find ./flutter/build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)\"\n"
+            "          APP_BUNDLE_NAME=\"$(basename \"${APP_BUNDLE}\")\"\n"
+            "          test -n \"${APP_BUNDLE}\" || { echo \"No .app bundle found\"; ls -la ./flutter/build/macos/Build/Products/Release; exit 1; }\n"
+            f"          create-dmg --icon \"${{APP_BUNDLE_NAME}}\" 200 190 --hide-extension \"${{APP_BUNDLE_NAME}}\" --window-size 800 400 --app-drop-link 600 185 {exe_stem}-${{{{ env.VERSION }}}}-${{{{ matrix.job.arch }}}}.dmg \"${{APP_BUNDLE}}\"",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            '          codesign --force --options runtime -s ${{ secrets.MACOS_CODESIGN_IDENTITY }} --deep --strict ./flutter/build/macos/Build/Products/Release/RustDesk.app -vvv',
+            """          APP_BUNDLE="$(find ./flutter/build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)"
+          APP_BUNDLE_NAME="$(basename "${APP_BUNDLE}")"
+          test -n "${APP_BUNDLE}" || { echo "No .app bundle found"; ls -la ./flutter/build/macos/Build/Products/Release; exit 1; }
+          codesign --force --options runtime -s ${{ secrets.MACOS_CODESIGN_IDENTITY }} --deep --strict "${APP_BUNDLE}" -vvv""",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            '          create-dmg --icon "RustDesk.app" 200 190 --hide-extension "RustDesk.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}.dmg ./flutter/build/macos/Build/Products/Release/RustDesk.app',
+            f'          create-dmg --icon "${{APP_BUNDLE_NAME}}" 200 190 --hide-extension "${{APP_BUNDLE_NAME}}" --window-size 800 400 --app-drop-link 600 185 {exe_stem}-${{{{ env.VERSION }}}}.dmg "${{APP_BUNDLE}}"',
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
             "rustdesk-${{ env.VERSION }}",
             f"{exe_stem}-${{{{ env.VERSION }}}}",
             False,
@@ -1841,12 +1900,18 @@ def main() -> int:
     ensure_literal("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)")
     ensure_literal(
         "src/platform/privileges_scripts/daemon.plist",
-        f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
+        f"/Applications/{mac_app_bundle}/Contents/MacOS/{service_exe_stem}",
+    )
+    ensure_literal(
+        "src/platform/privileges_scripts/daemon.plist",
+        f"/Applications/{mac_app_bundle}/Contents/MacOS/",
     )
     ensure_literal("flutter/windows/CMakeLists.txt", f'set(BINARY_NAME "{exe_stem}")')
     ensure_literal("src/privacy_mode/win_topmost_window.rs", f'RuntimeBroker_{exe_stem}.exe')
     ensure_literal("res/rustdesk.service", f"ExecStart=/usr/bin/{exe_stem} --service")
     ensure_literal("flutter/macos/Runner/Configs/AppInfo.xcconfig", f"PRODUCT_NAME = {app_name}")
+    ensure_literal("appimage/AppImageBuilder-x86_64.yml", f"exec: usr/share/rustdesk/{exe_stem}")
+    ensure_literal("appimage/AppImageBuilder-aarch64.yml", f"exec: usr/share/rustdesk/{exe_stem}")
 
     server_model = (ROOT / "flutter/lib/models/server_model.dart").read_text(encoding="utf-8")
     if "/*\n    var hideCm = option2bool(" in server_model:
