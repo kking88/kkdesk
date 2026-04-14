@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 from pathlib import Path
@@ -533,6 +534,25 @@ def main() -> int:
     settings_json = json.dumps(factory_settings, ensure_ascii=False)
     hard_json = json.dumps(factory_hard, ensure_ascii=False)
     builtin_json = json.dumps(factory_builtin, ensure_ascii=False)
+    # Desktop rdgen-compatible custom payload:
+    # keep one canonical custom config blob loaded on startup, so runtime behavior
+    # stays consistent across platforms and packaging layouts.
+    custom_settings = dict(factory_settings)
+    custom_settings.update(factory_builtin)
+    custom_settings["api-server"] = api_server
+    custom_settings["custom-rendezvous-server"] = custom_rendezvous_server or rendezvous_server
+    custom_settings["key"] = custom_server_key or pub_key
+    custom_payload = {"app-name": app_name}
+    custom_payload.update(factory_hard)
+    if custom_payload.get("conn-type") == "both":
+        custom_payload.pop("conn-type", None)
+    if custom_payload.get("password", "") == "":
+        custom_payload.pop("password", None)
+    scope_bucket = "override-settings" if settings_scope == "override" else "default-settings"
+    custom_payload[scope_bucket] = custom_settings
+    custom_b64 = base64.b64encode(
+        json.dumps(custom_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
 
     replacements = [
         (
@@ -629,6 +649,34 @@ def main() -> int:
             "libs/hbb_common/src/config.rs",
             'pub const RS_PUB_KEY: &str = "OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=";',
             f'pub const RS_PUB_KEY: &str = "{pub_key}";',
+            True,
+        ),
+        (
+            "src/common.rs",
+            "pub fn load_custom_client() {\n",
+            "const FACTORY_CUSTOM_CLIENT_B64: &str = \"__FACTORY_CUSTOM_CLIENT_B64__\";\n\npub fn load_custom_client() {\n    if !FACTORY_CUSTOM_CLIENT_B64.is_empty() {\n        read_custom_client(FACTORY_CUSTOM_CLIENT_B64);\n        return;\n    }\n",
+            True,
+        ),
+        (
+            "src/common.rs",
+            """    const KEY: &str = "5Qbwsde3unUcJBtrx9ZkvUmwFNoExHzpryHuPUdqlWM=";
+    let Some(pk) = get_rs_pk(KEY) else {
+        log::error!("Failed to parse public key of custom client");
+        return;
+    };
+    let Ok(data) = sign::verify(&data, &pk) else {
+        log::error!("Failed to dec custom client config");
+        return;
+    };
+""",
+            """    // Factory mode: accept unsigned base64 custom payload (desktop rdgen compatibility).
+""",
+            True,
+        ),
+        (
+            "src/common.rs",
+            "__FACTORY_CUSTOM_CLIENT_B64__",
+            custom_b64,
             True,
         ),
         (
@@ -1903,6 +1951,12 @@ def main() -> int:
     ensure_literal(
         "libs/hbb_common/src/config.rs",
         "pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_overwrite_local_settings());",
+    )
+    ensure_literal("src/common.rs", "const FACTORY_CUSTOM_CLIENT_B64: &str = \"")
+    ensure_literal("src/common.rs", "read_custom_client(FACTORY_CUSTOM_CLIENT_B64);")
+    ensure_literal(
+        "src/common.rs",
+        "Factory mode: accept unsigned base64 custom payload (desktop rdgen compatibility).",
     )
     ensure_literal("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)")
     ensure_literal(

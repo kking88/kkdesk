@@ -589,6 +589,21 @@ jobs:
           must_contain("libs/hbb_common/src/config.rs", f'"custom-ui-mode": "{ui_preset}"', failures)
           must_contain("libs/hbb_common/src/config.rs", f'"{settings_scope}"', failures)
           must_contain(
+              "src/common.rs",
+              'const FACTORY_CUSTOM_CLIENT_B64: &str = "',
+              failures,
+          )
+          must_contain(
+              "src/common.rs",
+              "read_custom_client(FACTORY_CUSTOM_CLIENT_B64);",
+              failures,
+          )
+          must_contain(
+              "src/common.rs",
+              "Factory mode: accept unsigned base64 custom payload (desktop rdgen compatibility).",
+              failures,
+          )
+          must_contain(
               "libs/hbb_common/src/config.rs",
               "pub static ref DEFAULT_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(factory_default_local_settings());",
               failures,
