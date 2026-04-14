@@ -704,14 +704,28 @@ jobs:
         run: |
           set -euo pipefail
           # Let GitHub index the new workflow files before dispatch.
-          sleep 8
+          sleep 12
 
           WORKFLOW_FILE=""
+          dispatch_with_retry() {
+            local candidate="$1"
+            local attempt
+            for attempt in 1 2 3 4 5 6; do
+              if gh api \
+                --method POST \
+                "repos/${OWNER}/${NEW_REPO}/actions/workflows/${candidate}/dispatches" \
+                -f ref="${DEFAULT_BRANCH}" >/dev/null 2>&1; then
+                echo "Dispatched ${candidate} on attempt ${attempt}"
+                return 0
+              fi
+              echo "Dispatch ${candidate} attempt ${attempt} failed; retrying..."
+              sleep 5
+            done
+            return 1
+          }
+
           for candidate in flutter-nightly.yml flutter-tag.yml flutter-ci.yml ci.yml; do
-            if gh api \
-              --method POST \
-              "repos/${OWNER}/${NEW_REPO}/actions/workflows/${candidate}/dispatches" \
-              -f ref="${DEFAULT_BRANCH}" >/dev/null 2>&1; then
+            if dispatch_with_retry "${candidate}"; then
               WORKFLOW_FILE="${candidate}"
               break
             fi
