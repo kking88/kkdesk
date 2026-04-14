@@ -723,6 +723,198 @@ def main() -> int:
             True,
         ),
         (
+            "flutter/windows/CMakeLists.txt",
+            'set(BINARY_NAME "rustdesk")',
+            f'set(BINARY_NAME "{exe_stem}")',
+            False,
+        ),
+        (
+            "flutter/linux/CMakeLists.txt",
+            'set(BINARY_NAME "rustdesk")',
+            f'set(BINARY_NAME "{exe_stem}")',
+            False,
+        ),
+        (
+            "flutter/linux/my_application.cc",
+            'gtk_header_bar_set_title(header_bar, "rustdesk");',
+            f'gtk_header_bar_set_title(header_bar, "{app_name}");',
+            False,
+        ),
+        (
+            "flutter/linux/my_application.cc",
+            'gtk_window_set_title(window, "rustdesk");',
+            f'gtk_window_set_title(window, "{app_name}");',
+            False,
+        ),
+        (
+            "flutter/macos/Runner/Configs/AppInfo.xcconfig",
+            "PRODUCT_NAME = RustDesk",
+            f"PRODUCT_NAME = {app_name}",
+            False,
+        ),
+        (
+            "res/rustdesk.desktop",
+            "Name=RustDesk",
+            f"Name={app_name}",
+            False,
+        ),
+        (
+            "res/rustdesk.desktop",
+            "Exec=rustdesk %u",
+            f"Exec={exe_stem} %u",
+            False,
+        ),
+        (
+            "res/rustdesk.desktop",
+            "Icon=rustdesk",
+            f"Icon={exe_stem}",
+            False,
+        ),
+        (
+            "res/rustdesk.desktop",
+            "StartupWMClass=rustdesk",
+            f"StartupWMClass={exe_stem}",
+            False,
+        ),
+        (
+            "res/rustdesk-link.desktop",
+            "Name=RustDesk",
+            f"Name={app_name}",
+            False,
+        ),
+        (
+            "res/rustdesk-link.desktop",
+            "TryExec=rustdesk",
+            f"TryExec={exe_stem}",
+            False,
+        ),
+        (
+            "res/rustdesk-link.desktop",
+            "Exec=rustdesk %u",
+            f"Exec={exe_stem} %u",
+            False,
+        ),
+        (
+            "res/rustdesk-link.desktop",
+            "Icon=rustdesk",
+            f"Icon={exe_stem}",
+            False,
+        ),
+        (
+            "res/rustdesk-link.desktop",
+            "StartupWMClass=rustdesk",
+            f"StartupWMClass={exe_stem}",
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            "Description=RustDesk",
+            f"Description={app_name}",
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            "ExecStart=/usr/bin/rustdesk --service",
+            f"ExecStart=/usr/bin/{exe_stem} --service",
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            'ExecStop=pkill -f "rustdesk --"',
+            f'ExecStop=pkill -f "{exe_stem} --"',
+            False,
+        ),
+        (
+            "res/rustdesk.service",
+            "PIDFile=/run/rustdesk.pid",
+            f"PIDFile=/run/{exe_stem}.pid",
+            False,
+        ),
+        (
+            "res/DEBIAN/postinst",
+            "ln -f -s /usr/share/rustdesk/rustdesk /usr/bin/rustdesk",
+            f"ln -f -s /usr/share/rustdesk/{exe_stem} /usr/bin/{exe_stem}\n\tln -f -s /usr/share/rustdesk/{exe_stem} /usr/bin/rustdesk",
+            False,
+        ),
+        (
+            "res/DEBIAN/prerm",
+            "rm -f /usr/bin/rustdesk",
+            f"rm -f /usr/bin/{exe_stem} /usr/bin/rustdesk",
+            False,
+        ),
+        (
+            "res/rpm-flutter.spec",
+            "ln -sf /usr/share/rustdesk/rustdesk /usr/bin/rustdesk",
+            f"ln -sf /usr/share/rustdesk/{exe_stem} /usr/bin/{exe_stem}\nln -sf /usr/share/rustdesk/{exe_stem} /usr/bin/rustdesk",
+            False,
+        ),
+        (
+            "res/rpm-flutter.spec",
+            "    rm /usr/bin/rustdesk || true",
+            f"    rm /usr/bin/{exe_stem} /usr/bin/rustdesk || true",
+            False,
+        ),
+        (
+            "res/rpm-flutter-suse.spec",
+            "ln -sf /usr/share/rustdesk/rustdesk /usr/bin/rustdesk",
+            f"ln -sf /usr/share/rustdesk/{exe_stem} /usr/bin/{exe_stem}\nln -sf /usr/share/rustdesk/{exe_stem} /usr/bin/rustdesk",
+            False,
+        ),
+        (
+            "res/rpm-flutter-suse.spec",
+            "    rm /usr/bin/rustdesk || true",
+            f"    rm /usr/bin/{exe_stem} /usr/bin/rustdesk || true",
+            False,
+        ),
+        (
+            "src/privacy_mode/win_topmost_window.rs",
+            'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_rustdesk.exe";',
+            f'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_{exe_stem}.exe";',
+            False,
+        ),
+        (
+            "libs/portable/src/main.rs",
+            'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_rustdesk.exe";',
+            f'pub const WIN_TOPMOST_INJECTED_PROCESS_EXE: &\'static str = "RuntimeBroker_{exe_stem}.exe";',
+            False,
+        ),
+        (
+            "libs/portable/src/main.rs",
+            '.args(&["/F", "/IM", "RuntimeBroker_rustdesk.exe"])',
+            f'.args(&["/F", "/IM", "RuntimeBroker_{exe_stem}.exe"])',
+            False,
+        ),
+        (
+            "res/msi/Package/Components/RustDesk.wxs",
+            'Value="RuntimeBroker_rustdesk.exe"',
+            f'Value="RuntimeBroker_{exe_stem}.exe"',
+            False,
+        ),
+        (
+            "res/msi/Package/Language/Package.en-us.wxl",
+            '<String Id="Service_DisplayName" Value="RustDesk Service" />',
+            f'<String Id="Service_DisplayName" Value="{app_name} Service" />',
+            False,
+        ),
+        (
+            "res/msi/Package/Language/Package.en-us.wxl",
+            '<String Id="Service_Description" Value="This service runs the RustDesk Server." />',
+            f'<String Id="Service_Description" Value="This service runs the {app_name} Server." />',
+            False,
+        ),
+        (
+            "build.py",
+            f'python3 ./generate.py -f ../../{{flutter_build_dir_2}} -o . -e ../../{{flutter_build_dir_2}}/rustdesk.exe',
+            f'python3 ./generate.py -f ../../{{flutter_build_dir_2}} -o . -e ../../{{flutter_build_dir_2}}/{exe_name}',
+            False,
+        ),
+        (
+            "src/server/portable_service.rs",
+            'let dst = dir.join("rustdesk.exe");',
+            f'let dst = dir.join("{exe_name}");',
+            False,
+        ),
+        (
             "build.py",
             "cp -rf ../target/release/service ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/",
             f"cp -rf ../target/release/{service_exe_stem} ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/",
@@ -1651,6 +1843,10 @@ def main() -> int:
         "src/platform/privileges_scripts/daemon.plist",
         f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
     )
+    ensure_literal("flutter/windows/CMakeLists.txt", f'set(BINARY_NAME "{exe_stem}")')
+    ensure_literal("src/privacy_mode/win_topmost_window.rs", f'RuntimeBroker_{exe_stem}.exe')
+    ensure_literal("res/rustdesk.service", f"ExecStart=/usr/bin/{exe_stem} --service")
+    ensure_literal("flutter/macos/Runner/Configs/AppInfo.xcconfig", f"PRODUCT_NAME = {app_name}")
 
     server_model = (ROOT / "flutter/lib/models/server_model.dart").read_text(encoding="utf-8")
     if "/*\n    var hideCm = option2bool(" in server_model:

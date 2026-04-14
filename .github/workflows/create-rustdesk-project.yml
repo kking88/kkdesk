@@ -599,6 +599,21 @@ jobs:
               f"/Applications/RustDesk.app/Contents/MacOS/{service_exe_stem}",
               failures,
           )
+          must_contain(
+              "flutter/windows/CMakeLists.txt",
+              f'set(BINARY_NAME "{exe_stem}")',
+              failures,
+          )
+          must_contain(
+              "src/privacy_mode/win_topmost_window.rs",
+              f"RuntimeBroker_{exe_stem}.exe",
+              failures,
+          )
+          must_contain(
+              "res/rustdesk.service",
+              f"ExecStart=/usr/bin/{exe_stem} --service",
+              failures,
+          )
           must_contain("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)", failures)
 
           server_model = Path("flutter/lib/models/server_model.dart").read_text(encoding="utf-8")
