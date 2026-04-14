@@ -194,6 +194,7 @@ def parse_args() -> argparse.Namespace:
         required=True,
         choices=["true", "false"],
     )
+    parser.add_argument("--disable-android-scam-warning", required=True, choices=["true", "false"])
     parser.add_argument("--hide-security-settings", required=True, choices=["true", "false"])
     parser.add_argument("--hide-network-settings", required=True, choices=["true", "false"])
     parser.add_argument("--hide-server-settings", required=True, choices=["true", "false"])
@@ -357,6 +358,7 @@ def main() -> int:
     enable_android_software_encoding_half_scale = (
         args.enable_android_software_encoding_half_scale == "true"
     )
+    disable_android_scam_warning = args.disable_android_scam_warning == "true"
     hide_security_settings = args.hide_security_settings == "true"
     hide_network_settings = args.hide_network_settings == "true"
     hide_server_settings = args.hide_server_settings == "true"
@@ -440,6 +442,7 @@ def main() -> int:
         "enable-android-software-encoding-half-scale": yn(
             enable_android_software_encoding_half_scale
         ),
+        "show-scam-warning": "N" if disable_android_scam_warning else "Y",
         "allow-remove-wallpaper": yn(allow_remove_wallpaper),
         "allow-auto-update": yn(auto_update_enabled),
     }
@@ -1887,6 +1890,10 @@ def main() -> int:
     )
     ensure_literal("libs/hbb_common/src/config.rs", f'pub const RS_PUB_KEY: &str = "{pub_key}";')
     ensure_literal("libs/hbb_common/src/config.rs", f'"allow-hide-cm": "{yn(allow_hide_cm)}"')
+    ensure_literal(
+        "libs/hbb_common/src/config.rs",
+        f'"show-scam-warning": "{"N" if disable_android_scam_warning else "Y"}"',
+    )
     ensure_literal("libs/hbb_common/src/config.rs", f'"custom-ui-mode": "{ui_preset}"')
     ensure_literal("Cargo.toml", f'name = "{service_exe_stem}"')
     ensure_literal(
