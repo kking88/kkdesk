@@ -524,6 +524,7 @@ def main() -> int:
 
     factory_builtin = {
         "hide-powered-by-me": yn(hide_powered_by),
+        "mask-server-config-values": "Y",
         "disable-change-permanent-password": yn(disable_change_permanent_password),
         "disable-change-id": yn(disable_change_id),
         "disable-unlock-pin": yn(disable_unlock_pin),
@@ -1084,6 +1085,12 @@ def main() -> int:
             "flutter/lib/mobile/pages/settings_page.dart",
             "launchUrlString('https://rustdesk.com/privacy.html'),",
             f"launchUrlString('{privacy_url}'),",
+            False,
+        ),
+        (
+            "flutter/lib/mobile/widgets/dialog.dart",
+            "  showServerSettingsWithValue(\n      ServerConfig.fromOptions(options), dialogManager, setState);\n",
+            "  final maskServerConfigValues =\n      bind.mainGetBuildinOption(key: 'mask-server-config-values') == 'Y';\n  final initialServerConfig = maskServerConfigValues\n      ? ServerConfig(idServer: '', relayServer: '', apiServer: '', key: '')\n      : ServerConfig.fromOptions(options);\n  showServerSettingsWithValue(initialServerConfig, dialogManager, setState);\n",
             False,
         ),
         (
@@ -2126,6 +2133,10 @@ def main() -> int:
     ensure_literal(
         "src/common.rs",
         "Factory mode: accept unsigned base64 custom payload (desktop rdgen compatibility).",
+    )
+    ensure_literal(
+        "flutter/lib/mobile/widgets/dialog.dart",
+        "mask-server-config-values') == 'Y'",
     )
     ensure_literal("flutter/lib/desktop/pages/desktop_setting_page.dart", "hide_cm(!locked)")
     ensure_literal(
