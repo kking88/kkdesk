@@ -1128,7 +1128,7 @@ def main() -> int:
   }""",
             """  setVerificationMethod(String method) async {
     await bind.mainSetOption(key: kOptionVerificationMethod, value: method);
-    if (method != kUsePermanentPassword) {
+    if (method == kUseTemporaryPassword) {
       await bind.mainSetOption(
           key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
     }
@@ -1177,7 +1177,7 @@ def main() -> int:
     _hideCm = option2bool(
         'allow-hide-cm', bind.mainGetOptionSync(key: 'allow-hide-cm'));
     if (!(approveMode == 'password' &&
-        verificationMethod == kUsePermanentPassword)) {
+        verificationMethod != kUseTemporaryPassword)) {
       _hideCm = false;
     }
 """,
@@ -1196,9 +1196,15 @@ def main() -> int:
             """    var hideCm = option2bool(
         'allow-hide-cm', await bind.mainGetOption(key: 'allow-hide-cm'));
     if (!(approveMode == 'password' &&
-        verificationMethod == kUsePermanentPassword)) {
+        verificationMethod != kUseTemporaryPassword)) {
       hideCm = false;
     }""",
+            False,
+        ),
+        (
+            "libs/hbb_common/src/password_security.rs",
+            "        && verification_method() == VerificationMethod::OnlyUsePermanentPassword",
+            "        && verification_method() != VerificationMethod::OnlyUseTemporaryPassword",
             False,
         ),
         (
@@ -1965,6 +1971,10 @@ def main() -> int:
     )
     ensure_literal("libs/hbb_common/src/config.rs", f'"key": "{effective_custom_server_key}"')
     ensure_literal("libs/hbb_common/src/config.rs", f'"allow-hide-cm": "{yn(allow_hide_cm)}"')
+    ensure_literal(
+        "libs/hbb_common/src/password_security.rs",
+        "verification_method() != VerificationMethod::OnlyUseTemporaryPassword",
+    )
     ensure_literal(
         "libs/hbb_common/src/config.rs",
         f'"show-scam-warning": "{"N" if disable_android_scam_warning else "Y"}"',
