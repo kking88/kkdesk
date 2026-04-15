@@ -86,6 +86,25 @@ def check_optional_uint(name: str, value: str, min_value: int, max_value: int) -
     return str(number)
 
 
+def parse_build_targets(value: str) -> str:
+    allowed = {"all", "windows", "linux", "android", "macos", "ios"}
+    ordered = ["windows", "linux", "android", "macos", "ios"]
+    cleaned = check_single_line("build_targets", value).lower().replace(" ", "")
+    parts = [token for token in cleaned.split(",") if token]
+    if not parts:
+        return "all"
+    for token in parts:
+        if token not in allowed:
+            raise ValueError(f"build_targets has invalid token: {token}")
+    if "all" in parts:
+        return "all"
+    deduped = []
+    for token in ordered:
+        if token in parts and token not in deduped:
+            deduped.append(token)
+    return ",".join(deduped) if deduped else "all"
+
+
 def yn(value: bool) -> str:
     return "Y" if value else "N"
 
@@ -229,7 +248,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--build-targets",
         required=True,
-        choices=["all", "windows", "linux", "android", "macos", "ios"],
     )
 
     return parser.parse_args()
@@ -399,7 +417,7 @@ def main() -> int:
     avatar = check_optional_single_line("avatar", args.avatar).strip()
     hide_powered_by = args.hide_powered_by == "true"
     ui_preset = args.ui_preset
-    build_targets = args.build_targets
+    build_targets = parse_build_targets(args.build_targets)
 
     exe_name = exe_name_raw if exe_name_raw.lower().endswith(".exe") else f"{exe_name_raw}.exe"
     exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name

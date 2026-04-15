@@ -377,10 +377,39 @@ jobs:
             echo "ui_preset is invalid"
             exit 1
           }
-          [[ "${BUILD_TARGETS}" == "all" || "${BUILD_TARGETS}" == "windows" || "${BUILD_TARGETS}" == "linux" || "${BUILD_TARGETS}" == "android" || "${BUILD_TARGETS}" == "macos" || "${BUILD_TARGETS}" == "ios" ]] || {
-            echo "build_targets must be all/windows/linux/android/macos/ios"
+          BUILD_TARGETS_SANITIZED="$(echo "${BUILD_TARGETS}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          [ -n "${BUILD_TARGETS_SANITIZED}" ] || {
+            echo "build_targets cannot be empty"
             exit 1
           }
+          IFS=',' read -r -a BUILD_TARGET_ARRAY <<<"${BUILD_TARGETS_SANITIZED}"
+          BUILD_TARGET_COUNT=0
+          BUILD_TARGET_HAS_ALL=0
+          for token in "${BUILD_TARGET_ARRAY[@]}"; do
+            [ -n "${token}" ] || continue
+            case "${token}" in
+              all)
+                BUILD_TARGET_HAS_ALL=1
+                BUILD_TARGET_COUNT=$((BUILD_TARGET_COUNT + 1))
+                ;;
+              windows|linux|android|macos|ios)
+                BUILD_TARGET_COUNT=$((BUILD_TARGET_COUNT + 1))
+                ;;
+              *)
+                echo "build_targets has invalid token: ${token}"
+                exit 1
+                ;;
+            esac
+          done
+          [ "${BUILD_TARGET_COUNT}" -gt 0 ] || {
+            echo "build_targets cannot be empty"
+            exit 1
+          }
+          if [ "${BUILD_TARGET_HAS_ALL}" -eq 1 ] && [ "${BUILD_TARGET_COUNT}" -gt 1 ]; then
+            echo "build_targets cannot mix all with specific platforms"
+            exit 1
+          fi
+          echo "BUILD_TARGETS=${BUILD_TARGETS_SANITIZED}" >>"${GITHUB_ENV}"
 
       - name: Resolve checkout ref
         run: |
