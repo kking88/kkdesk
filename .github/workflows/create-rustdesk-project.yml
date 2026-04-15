@@ -148,6 +148,7 @@ jobs:
       AVATAR: ""
       HIDE_POWERED_BY: ""
       UI_PRESET: ""
+      BUILD_TARGETS: "all"
     steps:
       - name: Checkout factory repository
         uses: actions/checkout@v4
@@ -376,6 +377,10 @@ jobs:
             echo "ui_preset is invalid"
             exit 1
           }
+          [[ "${BUILD_TARGETS}" == "all" || "${BUILD_TARGETS}" == "windows" || "${BUILD_TARGETS}" == "linux" || "${BUILD_TARGETS}" == "android" || "${BUILD_TARGETS}" == "macos" || "${BUILD_TARGETS}" == "ios" ]] || {
+            echo "build_targets must be all/windows/linux/android/macos/ios"
+            exit 1
+          }
 
       - name: Resolve checkout ref
         run: |
@@ -548,7 +553,8 @@ jobs:
             --preset-strategy-name "${PRESET_STRATEGY_NAME}" \
             --avatar "${AVATAR}" \
             --hide-powered-by "${HIDE_POWERED_BY}" \
-            --ui-preset "${UI_PRESET}"
+            --ui-preset "${UI_PRESET}" \
+            --build-targets "${BUILD_TARGETS}"
 
       - name: Verify critical customization markers
         working-directory: project
@@ -726,6 +732,7 @@ jobs:
           sleep 12
 
           WORKFLOW_FILE=""
+          DISPATCH_MODE=""
           dispatch_with_retry() {
             local candidate="$1"
             local attempt
@@ -733,8 +740,18 @@ jobs:
               if gh api \
                 --method POST \
                 "repos/${OWNER}/${NEW_REPO}/actions/workflows/${candidate}/dispatches" \
+                -f ref="${DEFAULT_BRANCH}" \
+                -f "inputs[build_targets]=${BUILD_TARGETS}" >/dev/null 2>&1; then
+                echo "Dispatched ${candidate} with build_targets=${BUILD_TARGETS} on attempt ${attempt}"
+                DISPATCH_MODE="with-input"
+                return 0
+              fi
+              if gh api \
+                --method POST \
+                "repos/${OWNER}/${NEW_REPO}/actions/workflows/${candidate}/dispatches" \
                 -f ref="${DEFAULT_BRANCH}" >/dev/null 2>&1; then
-                echo "Dispatched ${candidate} on attempt ${attempt}"
+                echo "Dispatched ${candidate} without explicit inputs on attempt ${attempt}"
+                DISPATCH_MODE="without-input"
                 return 0
               fi
               echo "Dispatch ${candidate} attempt ${attempt} failed; retrying..."
@@ -753,10 +770,12 @@ jobs:
           if [ -n "${WORKFLOW_FILE}" ]; then
             echo "BUILD_TRIGGERED=true" >>"${GITHUB_ENV}"
             echo "BUILD_WORKFLOW_FILE=${WORKFLOW_FILE}" >>"${GITHUB_ENV}"
+            echo "BUILD_DISPATCH_MODE=${DISPATCH_MODE}" >>"${GITHUB_ENV}"
             echo "Auto-triggered build workflow: ${WORKFLOW_FILE}"
           else
             echo "BUILD_TRIGGERED=false" >>"${GITHUB_ENV}"
             echo "BUILD_WORKFLOW_FILE=" >>"${GITHUB_ENV}"
+            echo "BUILD_DISPATCH_MODE=" >>"${GITHUB_ENV}"
             echo "No dispatchable build workflow found or token has no workflow permission; skipped auto-trigger."
           fi
 
@@ -768,5 +787,7 @@ jobs:
           echo "Build triggered: ${BUILD_TRIGGERED:-false}"
           if [ "${BUILD_TRIGGERED:-false}" = "true" ]; then
             echo "Build workflow: ${BUILD_WORKFLOW_FILE}"
+            echo "Build targets: ${BUILD_TARGETS}"
+            echo "Dispatch mode: ${BUILD_DISPATCH_MODE}"
             echo "Build runs: https://github.com/${OWNER}/${NEW_REPO}/actions"
           fi

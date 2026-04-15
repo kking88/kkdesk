@@ -226,6 +226,11 @@ def parse_args() -> argparse.Namespace:
         required=True,
         choices=["standard", "mini-host-id-password", "controller-desktop-only"],
     )
+    parser.add_argument(
+        "--build-targets",
+        required=True,
+        choices=["all", "windows", "linux", "android", "macos", "ios"],
+    )
 
     return parser.parse_args()
 
@@ -394,6 +399,7 @@ def main() -> int:
     avatar = check_optional_single_line("avatar", args.avatar).strip()
     hide_powered_by = args.hide_powered_by == "true"
     ui_preset = args.ui_preset
+    build_targets = args.build_targets
 
     exe_name = exe_name_raw if exe_name_raw.lower().endswith(".exe") else f"{exe_name_raw}.exe"
     exe_stem = exe_name[:-4] if exe_name.lower().endswith(".exe") else exe_name
@@ -1621,6 +1627,126 @@ def main() -> int:
         ("flutter/macos/Runner/Info.plist", "com.carriez.rustdesk", bundle_id, False),
         ("flutter/ios/Runner/Info.plist", "com.carriez.rustdesk", bundle_id, False),
         ("flutter/macos/Runner.xcodeproj/project.pbxproj", "com.carriez.rustdesk", bundle_id, False),
+        (
+            ".github/workflows/flutter-build.yml",
+            '      upload-tag:\n        type: string\n        default: "nightly"',
+            f'      upload-tag:\n        type: string\n        default: "nightly"\n      build-targets:\n        type: string\n        default: "{build_targets}"',
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            '  TAG_NAME: "${{ inputs.upload-tag }}"',
+            '  TAG_NAME: "${{ inputs.upload-tag }}"\n  FACTORY_BUILD_TARGETS: ",${{ inputs.build-targets }},"',
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-RustDeskTempTopMostWindow:\n    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml",
+            "  build-RustDeskTempTopMostWindow:\n    if: ${{ contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',windows,') }}\n    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-for-windows-flutter:\n    name: ${{ matrix.job.target }}",
+            "  build-for-windows-flutter:\n    if: ${{ contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',windows,') }}\n    name: ${{ matrix.job.target }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-for-windows-sciter:\n    name: ${{ matrix.job.target }} (${{ matrix.job.os }})",
+            "  build-for-windows-sciter:\n    if: ${{ contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',windows,') }}\n    name: ${{ matrix.job.target }} (${{ matrix.job.os }})",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-rustdesk-ios:\n    if: ${{ inputs.upload-artifact }}\n    name: build rustdesk ios ipa",
+            "  build-rustdesk-ios:\n    if: ${{ inputs.upload-artifact && (contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',ios,')) }}\n    name: build rustdesk ios ipa",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-for-macOS:\n    name: ${{ matrix.job.target }}",
+            "  build-for-macOS:\n    if: ${{ contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',macos,') }}\n    name: ${{ matrix.job.target }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  publish_unsigned:\n    needs:\n      - build-for-macOS\n      - build-for-windows-flutter\n      - build-for-windows-sciter\n    runs-on: ubuntu-latest\n    if: ${{ inputs.upload-artifact }}",
+            "  publish_unsigned:\n    needs:\n      - build-for-macOS\n      - build-for-windows-flutter\n      - build-for-windows-sciter\n    runs-on: ubuntu-latest\n    if: ${{ inputs.upload-artifact && (contains(env.FACTORY_BUILD_TARGETS, ',all,') || (contains(env.FACTORY_BUILD_TARGETS, ',windows,') && contains(env.FACTORY_BUILD_TARGETS, ',macos,'))) }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-rustdesk-android:\n    needs: [generate-bridge]\n    name: build rustdesk android apk ${{ matrix.job.target }}",
+            "  build-rustdesk-android:\n    if: ${{ contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',android,') }}\n    needs: [generate-bridge]\n    name: build rustdesk android apk ${{ matrix.job.target }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-rustdesk-android-universal:\n    needs: [build-rustdesk-android]\n    name: build rustdesk android universal apk\n    if: ${{ inputs.upload-artifact }}",
+            "  build-rustdesk-android-universal:\n    needs: [build-rustdesk-android]\n    name: build rustdesk android universal apk\n    if: ${{ inputs.upload-artifact && (contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',android,')) }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-rustdesk-linux:\n    needs: [generate-bridge]\n    name: build rustdesk linux ${{ matrix.job.target }}",
+            "  build-rustdesk-linux:\n    if: ${{ contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',linux,') }}\n    needs: [generate-bridge]\n    name: build rustdesk linux ${{ matrix.job.target }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-rustdesk-linux-sciter:\n    if: ${{ inputs.upload-artifact }}\n    runs-on: ${{ matrix.job.on }}",
+            "  build-rustdesk-linux-sciter:\n    if: ${{ inputs.upload-artifact && (contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',linux,')) }}\n    runs-on: ${{ matrix.job.on }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-appimage:\n    name: Build appimage ${{ matrix.job.target }}\n    needs: [build-rustdesk-linux]\n    runs-on: ubuntu-22.04\n    if: ${{ inputs.upload-artifact }}",
+            "  build-appimage:\n    name: Build appimage ${{ matrix.job.target }}\n    needs: [build-rustdesk-linux]\n    runs-on: ubuntu-22.04\n    if: ${{ inputs.upload-artifact && (contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',linux,')) }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-build.yml",
+            "  build-flatpak:\n    name: Build flatpak ${{ matrix.job.target }}${{ matrix.job.suffix }}\n    needs:\n      - build-rustdesk-linux\n      - build-rustdesk-linux-sciter\n    runs-on: ${{ matrix.job.on }}\n    if: ${{ inputs.upload-artifact }}",
+            "  build-flatpak:\n    name: Build flatpak ${{ matrix.job.target }}${{ matrix.job.suffix }}\n    needs:\n      - build-rustdesk-linux\n      - build-rustdesk-linux-sciter\n    runs-on: ${{ matrix.job.on }}\n    if: ${{ inputs.upload-artifact && (contains(env.FACTORY_BUILD_TARGETS, ',all,') || contains(env.FACTORY_BUILD_TARGETS, ',linux,')) }}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-nightly.yml",
+            "  workflow_dispatch:",
+            f'  workflow_dispatch:\n    inputs:\n      build_targets:\n        description: "Build targets: all/windows/linux/android/macos/ios"\n        required: false\n        default: "{build_targets}"\n        type: string',
+            False,
+        ),
+        (
+            ".github/workflows/flutter-nightly.yml",
+            '    with:\n      upload-artifact: true\n      upload-tag: "nightly"',
+            f"    with:\n      upload-artifact: true\n      upload-tag: \"nightly\"\n      build-targets: ${{{{ github.event.inputs.build_targets || '{build_targets}' }}}}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-tag.yml",
+            "on:\n  workflow_dispatch:",
+            f'on:\n  workflow_dispatch:\n    inputs:\n      build_targets:\n        description: "Build targets: all/windows/linux/android/macos/ios"\n        required: false\n        default: "{build_targets}"\n        type: string',
+            False,
+        ),
+        (
+            ".github/workflows/flutter-tag.yml",
+            "    with:\n      upload-artifact: true\n      upload-tag: ${{ github.ref_name }}",
+            f"    with:\n      upload-artifact: true\n      upload-tag: ${{{{ github.ref_name }}}}\n      build-targets: ${{{{ github.event.inputs.build_targets || '{build_targets}' }}}}",
+            False,
+        ),
+        (
+            ".github/workflows/flutter-ci.yml",
+            "on:\n  workflow_dispatch:",
+            f'on:\n  workflow_dispatch:\n    inputs:\n      build_targets:\n        description: "Build targets: all/windows/linux/android/macos/ios"\n        required: false\n        default: "{build_targets}"\n        type: string',
+            False,
+        ),
+        (
+            ".github/workflows/flutter-ci.yml",
+            "jobs:\n  run-ci:\n    uses: ./.github/workflows/flutter-build.yml\n    with:\n      upload-artifact: false",
+            f"jobs:\n  run-ci:\n    uses: ./.github/workflows/flutter-build.yml\n    with:\n      upload-artifact: false\n      build-targets: ${{{{ github.event.inputs.build_targets || '{build_targets}' }}}}",
+            False,
+        ),
         (
             ".github/workflows/flutter-build.yml",
             "          python preprocess.py --arp -d ../../rustdesk\n"
