@@ -789,7 +789,10 @@ jobs:
             return 1
           }
 
-          for candidate in flutter-nightly.yml flutter-tag.yml flutter-ci.yml ci.yml; do
+          # Only dispatch artifact-producing workflows here.
+          # Fallback to flutter-ci/ci.yml is intentionally removed because those
+          # pipelines can report success without publishing release assets.
+          for candidate in flutter-nightly.yml flutter-tag.yml; do
             if dispatch_with_retry "${candidate}"; then
               WORKFLOW_FILE="${candidate}"
               break
@@ -805,7 +808,9 @@ jobs:
             echo "BUILD_TRIGGERED=false" >>"${GITHUB_ENV}"
             echo "BUILD_WORKFLOW_FILE=" >>"${GITHUB_ENV}"
             echo "BUILD_DISPATCH_MODE=" >>"${GITHUB_ENV}"
-            echo "No dispatchable build workflow found or token has no workflow permission; skipped auto-trigger."
+            echo "No dispatchable artifact build workflow found (expected flutter-nightly.yml/flutter-tag.yml)."
+            echo "Check workflow file validity and token workflow permissions."
+            exit 1
           fi
 
       - name: Summary
