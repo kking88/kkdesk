@@ -474,12 +474,15 @@ def main() -> int:
         "show-scam-warning": "N" if disable_android_scam_warning else "Y",
         "allow-remove-wallpaper": yn(allow_remove_wallpaper),
         "allow-auto-update": yn(auto_update_enabled),
-        "api-server": api_server,
-        "custom-rendezvous-server": effective_custom_rendezvous_server,
-        "key": effective_custom_server_key,
     }
-    if relay_server:
-        factory_settings["relay-server"] = relay_server
+    # Keep server endpoints/key as compile-time constants instead of user-visible options.
+    # This avoids exposing embedded ID/Relay/API/Key values in client settings UI.
+    # For override scope, write empty values to clear stale local options.
+    if settings_scope == "override":
+        factory_settings["api-server"] = ""
+        factory_settings["custom-rendezvous-server"] = ""
+        factory_settings["key"] = ""
+        factory_settings["relay-server"] = ""
     if ice_servers:
         factory_settings["ice-servers"] = ice_servers
     if proxy_url:
@@ -566,9 +569,6 @@ def main() -> int:
     # stays consistent across platforms and packaging layouts.
     custom_settings = dict(factory_settings)
     custom_settings.update(factory_builtin)
-    custom_settings["api-server"] = api_server
-    custom_settings["custom-rendezvous-server"] = effective_custom_rendezvous_server
-    custom_settings["key"] = effective_custom_server_key
     custom_payload = {"app-name": app_name}
     custom_payload.update(factory_hard)
     if custom_payload.get("conn-type") == "both":
@@ -2102,12 +2102,6 @@ def main() -> int:
         f'pub const RENDEZVOUS_SERVERS: &[&str] = &["{rendezvous_server}"];',
     )
     ensure_literal("libs/hbb_common/src/config.rs", f'pub const RS_PUB_KEY: &str = "{pub_key}";')
-    ensure_literal("libs/hbb_common/src/config.rs", f'"api-server": "{api_server}"')
-    ensure_literal(
-        "libs/hbb_common/src/config.rs",
-        f'"custom-rendezvous-server": "{effective_custom_rendezvous_server}"',
-    )
-    ensure_literal("libs/hbb_common/src/config.rs", f'"key": "{effective_custom_server_key}"')
     ensure_literal("libs/hbb_common/src/config.rs", f'"allow-hide-cm": "{yn(allow_hide_cm)}"')
     ensure_literal(
         "libs/hbb_common/src/password_security.rs",
